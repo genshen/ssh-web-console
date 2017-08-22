@@ -18,9 +18,12 @@ go get -u golang.org/x/crypto/ssh
    ```
 3. set Dependency and run:***go build main.go*** to build present project (you can also use [bee tool](https://beego.me/docs/install/bee.md) to build).
 4. run: ./main ,and than you can enjoy it in your browser.
+![](./Screenshots/shot1.png)
 
 ## Screenshots
-:![](./Screenshots/shot1.png)
-:![](./Screenshots/shot2.png)
-:![](./Screenshots/shot3.png)
-:![](./Screenshots/shot4.png)
+![](./Screenshots/shot2.png)
+![](./Screenshots/shot3.png)
+![](./Screenshots/shot4.png)
+
+# related works
+https://github.com/shibingli/webconsole

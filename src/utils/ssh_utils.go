@@ -52,7 +52,7 @@ func (this *SSH) Connect(username, password string) (*ssh.Client, error) {
 		},
 	}
 
-	client, err := ssh.Dial("tcp", this.Node.Host + ":" + strconv.Itoa(this.Node.Port), config)
+	client, err := ssh.Dial("tcp", this.Node.Host+":"+strconv.Itoa(this.Node.Port), config)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +84,7 @@ type ptyRequestMsg struct {
 }
 
 //@deprecated
-func (this *SSH) ConfigShellChannel() (ssh.Channel, error) {
+func (this *SSH) ConfigShellChannel(cols, rows uint32) (ssh.Channel, error) {
 	channel, requests, err := this.Client.Conn.OpenChannel("session", nil)
 	if err != nil {
 		return nil, err
@@ -118,10 +118,10 @@ func (this *SSH) ConfigShellChannel() (ssh.Channel, error) {
 	modeList = append(modeList, 0)
 	req := ptyRequestMsg{//todo configure
 		Term: "xterm",
-		Columns: 40,
-		Rows: 80,
-		Width: 40 * 8,
-		Height: 80 * 8,
+		Columns: cols,
+		Rows: rows,
+		Width: cols * 8,
+		Height: rows * 8,
 		Modelist: string(modeList),
 	}
 
@@ -151,7 +151,7 @@ func (this *SSH) ConfigShellChannel() (ssh.Channel, error) {
 }
 
 //@deprecated
-func (this *SSH) ConfigShellSession() (*ssh.Session, error) {
+func (this *SSH) ConfigShellSession(cols, rows int) (*ssh.Session, error) {
 	session, err := this.Client.NewSession()
 	if err != nil {
 		return nil, err
@@ -171,7 +171,7 @@ func (this *SSH) ConfigShellSession() (*ssh.Session, error) {
 		ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
 	}
 	// Request pseudo terminal
-	if err := session.RequestPty("xterm", 40, 80, modes); err != nil {
+	if err := session.RequestPty("xterm", rows, cols, modes); err != nil {
 		log.Fatal("request for pseudo terminal failed: ", err)
 		return nil, err
 	}

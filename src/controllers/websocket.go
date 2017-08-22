@@ -46,12 +46,24 @@ func (this *WebSocketController) SSHWebSocketHandle() {
 		beego.Error("Cannot setup ssh connection:", err)
 		return
 	}
+
+	cols, err := this.GetUint32("cols", 120)
+	if err != nil {
+		beego.Error("get params cols error:", err)
+		return
+	}
+	rows, err := this.GetUint32("rows", 32)
+	if err != nil {
+		beego.Error("get params cols error:", err)
+		return
+	}
+
 	//set ssh IO mode and ssh shell
 	sshIOMode := beego.AppConfig.DefaultInt(utils.KEY_SSH_IO_MODE, utils.SSH_IO_MODE_CHANNEL)
 	if sshIOMode == utils.SSH_IO_MODE_CHANNEL {
-		_, err = sshEntity.ConfigShellChannel()
+		_, err = sshEntity.ConfigShellChannel(cols, rows)
 	} else {
-		_, err = sshEntity.ConfigShellSession()
+		_, err = sshEntity.ConfigShellSession(int(cols), int(rows))
 	}
 	if err != nil {
 		beego.Error("configure ssh session error:", err)
