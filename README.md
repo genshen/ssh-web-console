@@ -6,6 +6,7 @@ you can connect to your linux machine by ssh in your browser.
 go get -u github.com/astaxie/beego
 go get -u github.com/gorilla/websocket
 go get -u golang.org/x/crypto/ssh
+go get -u github.com/pkg/sftp
 
 ```
 

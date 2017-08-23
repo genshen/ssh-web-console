@@ -46,6 +46,7 @@ func (this *WebSocketController) SSHWebSocketHandle() {
 		beego.Error("Cannot setup ssh connection:", err)
 		return
 	}
+	defer sshEntity.Close()
 
 	cols, err := this.GetUint32("cols", 120)
 	if err != nil {
@@ -69,8 +70,6 @@ func (this *WebSocketController) SSHWebSocketHandle() {
 		beego.Error("configure ssh session error:", err)
 		return
 	}
-
-	defer sshEntity.Close()
 
 	done := make(chan bool, 3)
 	setDone := func() { done <- true }
