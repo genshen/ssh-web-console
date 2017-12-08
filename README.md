@@ -26,5 +26,5 @@ go get -u github.com/pkg/sftp
 ![](./Screenshots/shot3.png)
 ![](./Screenshots/shot4.png)
 
-# related works
+# Similar works
 https://github.com/shibingli/webconsole

@@ -33,6 +33,7 @@ func (this *WebSocketController) SSHWebSocketHandle() {
 		beego.Error("Cannot get Session data:", err)
 		return
 	}
+	defer this.DelSession("userinfo")  // clear session after ssh closed.
 	user := v.(models.UserInfo)
 	//setup ssh connection
 	sshEntity := utils.SSH{
