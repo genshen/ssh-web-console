@@ -84,24 +84,19 @@ func (c SSHWebSocketHandle) ServeAfterAuthenticated(w http.ResponseWriter, r *ht
 
 	// read turn from ssh server, and store it to byte buffer.
 	readMessageFromSSHServer := func(reader io.Reader) {
-		go func() {
-			defer setDone()
-			// read rune.
-			br := bufio.NewReader(reader)
-			for {
-				r, size, err := br.ReadRune()
-				if err != nil {
-					log.Println("Error: error reading data from ssh server:", err)
-					return
-				}
-				if size > 0 { // store rune to buffer.
-					//if string(r) == "\\" { //todo bug: char '\'
-					//	continue
-					//}
-					runeChan <- r
-				}
+		defer setDone()
+		// read rune.
+		br := bufio.NewReader(reader)
+		for {
+			r, size, err := br.ReadRune()
+			if err != nil {
+				log.Println("Error: error reading data from ssh server:", err)
+				return
 			}
-		}()
+			if size > 0 { // store rune to buffer. (?) may have bug: char '\', if not use buffer.
+				runeChan <- r
+			}
+		}
 	}
 
 	writeBufferToWebSocket := func() {
@@ -135,8 +130,8 @@ func (c SSHWebSocketHandle) ServeAfterAuthenticated(w http.ResponseWriter, r *ht
 	} else {
 		go writeMessageToSSHServer(sshEntity.IO.StdIn)
 		go readMessageFromSSHServer(sshEntity.IO.StdOut)
+		go readMessageFromSSHServer(sshEntity.IO.StdErr)
 		go writeBufferToWebSocket()
-		// go readMessageFromSSHServer(sshEntity.IO.StdErr)
 	}
 	<-done
 	log.Println("Info: websocket finished!")

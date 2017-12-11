@@ -5,7 +5,7 @@ site:
   static_dir: static/
   views_dir: views/
 ssh:
-  io_mode: 2  # the mode reading data from ssh server: channel mode (0) OR session mode (1)
+  io_mode: 1  # the mode reading data from ssh server: channel mode (0) OR session mode (1)
   buffer_checker_cycle_time: 60 # check buffer every { buffer_checker_cycle_time } ms. if buffer is not empty , then send buffered data back to client(browser/webSocket)
 jwt:
   jwt_secret: secret.console.hpc.gensh.me
