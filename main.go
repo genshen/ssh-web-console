@@ -1,16 +1,15 @@
 package main
 
 import (
-	_ "github.com/genshen/webConsole/src/routers"
-	"github.com/astaxie/beego"
 	"os"
+	"log"
 	"golang.org/x/crypto/ssh"
 	"github.com/genshen/webConsole/src/utils"
-	"log"
+	"github.com/genshen/webConsole/src/routers"
 )
 
 func main() {
-	beego.Run()
+	routers.Run()
 	//setupSSH()
 }
 
@@ -28,7 +27,7 @@ func setupSSH() {
 		},
 	}
 	_, err := sshEntity.Connect("genshen", "genshen1234")
-	check(err,"connect")
+	check(err, "connect")
 	defer sshEntity.Client.Close()
 
 	session, err := sshEntity.Client.NewSession()

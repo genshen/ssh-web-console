@@ -1,12 +1,12 @@
 package utils
 
 import (
-	"golang.org/x/crypto/ssh"
-	"strconv"
-	"errors"
+	"io"
 	"net"
 	"log"
-	"io"
+	"errors"
+	"strconv"
+	"golang.org/x/crypto/ssh"
 )
 
 const (
@@ -14,9 +14,9 @@ const (
 	SSH_IO_MODE_SESSION = 1
 )
 
-type Node struct {
-	Host string
-	Port int
+type Node struct{
+	Host string // host, e.g: ssh.example.com
+	Port int    //port,default value is 22
 }
 
 type SSH struct {
@@ -102,7 +102,7 @@ func (this *SSH) ConfigShellChannel(cols, rows uint32) (ssh.Channel, error) {
 	}()
 
 	//thanks:https://github.com/shibingli/webconsole/
-	modes := ssh.TerminalModes{//todo configure
+	modes := ssh.TerminalModes{ //todo configure
 		ssh.ECHO: 1,
 		ssh.TTY_OP_ISPEED: 14400,
 		ssh.TTY_OP_OSPEED: 14400,

@@ -14,8 +14,6 @@
 .glide/
 
 *.exe~
-dist/
-temp/
+static/
 views/
 .idea/
-.idea/*

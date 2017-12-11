@@ -1,74 +1,61 @@
 package controllers
 
 import (
-	"github.com/gorilla/websocket"
-	"net/http"
-	"github.com/astaxie/beego"
-	"github.com/genshen/webConsole/src/utils"
-	"bufio"
 	"io"
+	"log"
+	"bufio"
+	"net/http"
+	"github.com/gorilla/websocket"
+	"github.com/genshen/webConsole/src/utils"
 	"github.com/genshen/webConsole/src/models"
 )
 
-type WebSocketController struct {
-	BaseController
+type SSHWebSocketHandle struct {
 }
 
 //to handle webSocket connection
-func (this *WebSocketController) SSHWebSocketHandle() {
-	this.EnableRender = false
-	ws, err := websocket.Upgrade(this.Ctx.ResponseWriter, this.Ctx.Request, nil, 1024, 1024)
+func (c SSHWebSocketHandle) ServeAfterAuthenticated(w http.ResponseWriter, r *http.Request, claims *utils.Claims, session *utils.Session) {
+	// init websocket connection
+	ws, err := websocket.Upgrade(w, r, nil, 1024, 1024)
 	if _, ok := err.(websocket.HandshakeError); ok {
-		http.Error(this.Ctx.ResponseWriter, "Not a websocket handshake", 400)
+		utils.Abort(w, "Not a websocket handshake", 400)
+		log.Println("Error: Not a websocket handshake", 400)
 		return
 	} else if err != nil {
-		beego.Error("Cannot setup WebSocket connection:", err)
+		http.Error(w, "Cannot setup WebSocket connection:", 400)
+		log.Println("Error: Cannot setup WebSocket connection:", err)
 		return
 	}
-
 	defer ws.Close()
 
-	v := this.GetSession("userinfo")
-	if v == nil {
-		beego.Error("Cannot get Session data:", err)
-		return
-	}
-	defer this.DelSession("userinfo")  // clear session after ssh closed.
-	user := v.(models.UserInfo)
 	//setup ssh connection
 	sshEntity := utils.SSH{
 		Node: utils.Node{
-			Host: user.Host,
-			Port: user.Port,
+			Host: claims.Host,
+			Port: claims.Port,
 		},
 	}
-	_, err = sshEntity.Connect(user.Username, user.Password)
+	userInfo := session.Value.(models.UserInfo)
+	_, err = sshEntity.Connect(userInfo.Username, userInfo.Password)
 	if err != nil {
-		beego.Error("Cannot setup ssh connection:", err)
+		utils.Abort(w, "Cannot setup ssh connection:", 500)
+		log.Println("Error: Cannot setup ssh connection:", err)
 		return
 	}
 	defer sshEntity.Close()
 
-	cols, err := this.GetUint32("cols", 120)
-	if err != nil {
-		beego.Error("get params cols error:", err)
-		return
-	}
-	rows, err := this.GetUint32("rows", 32)
-	if err != nil {
-		beego.Error("get params cols error:", err)
-		return
-	}
+	cols := utils.GetQueryInt32(r, "cols", 120)
+	rows := utils.GetQueryInt32(r, "rows", 32)
 
 	//set ssh IO mode and ssh shell
-	sshIOMode := beego.AppConfig.DefaultInt(utils.KEY_SSH_IO_MODE, utils.SSH_IO_MODE_CHANNEL)
+	sshIOMode := utils.Config.SSH.IOMode
 	if sshIOMode == utils.SSH_IO_MODE_CHANNEL {
 		_, err = sshEntity.ConfigShellChannel(cols, rows)
 	} else {
 		_, err = sshEntity.ConfigShellSession(int(cols), int(rows))
 	}
 	if err != nil {
-		beego.Error("configure ssh session error:", err)
+		log.Println("Error: configure ssh session error:", err)
 		return
 	}
 
@@ -80,12 +67,12 @@ func (this *WebSocketController) SSHWebSocketHandle() {
 		for {
 			_, p, err := ws.ReadMessage()
 			if err != nil {
-				beego.Error("error reading webSocket message:", err)
+				log.Println("Error: error reading webSocket message:", err)
 				return
 			}
 			_, err = wc.Write(p)
 			if err != nil {
-				beego.Error("error sending data to ssh server:", err)
+				log.Println("Error: error sending data to ssh server:", err)
 				return
 			}
 		}
@@ -99,7 +86,7 @@ func (this *WebSocketController) SSHWebSocketHandle() {
 			for {
 				r, size, err := br.ReadRune()
 				if err != nil {
-					beego.Error("error reading data from ssh server:", err)
+					log.Println("Error: error reading data from ssh server:", err)
 					return
 				}
 				if size > 0 {
@@ -108,7 +95,7 @@ func (this *WebSocketController) SSHWebSocketHandle() {
 					//}
 					err = ws.WriteMessage(websocket.TextMessage, []byte(string(r)))
 					if err != nil { //todo error
-						beego.Error("error sending data via webSocket:", err)
+						log.Println("Error: error sending data via webSocket:", err)
 						return
 					}
 				}
@@ -117,13 +104,13 @@ func (this *WebSocketController) SSHWebSocketHandle() {
 	}
 
 	if sshIOMode == utils.SSH_IO_MODE_CHANNEL {
-		go writeMessageToSSHServer(sshEntity.Channel);
+		go writeMessageToSSHServer(sshEntity.Channel)
 		go readMessageFromSSHServer(sshEntity.Channel)
 	} else {
-		go writeMessageToSSHServer(sshEntity.IO.StdIn);
+		go writeMessageToSSHServer(sshEntity.IO.StdIn)
 		go readMessageFromSSHServer(sshEntity.IO.StdOut)
 		go readMessageFromSSHServer(sshEntity.IO.StdErr)
 	}
 	<-done
-	beego.Info("websocket finished!")
+	log.Println("Info: websocket finished!")
 }

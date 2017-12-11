@@ -1,21 +1,23 @@
 package utils
 
 import (
-	"github.com/pkg/sftp"
-	"mime/multipart"
-	"github.com/genshen/webConsole/src/models"
 	"os"
 	"path"
+	"mime/multipart"
+	"github.com/pkg/sftp"
+	//"github.com/genshen/webConsole/src/models"
 )
 
-func UploadFile(user models.UserInfo, srcFile multipart.File, header *multipart.FileHeader) error {
+type SftpNode Node // struct alias.
+
+func UploadFile(user SftpNode, username, password string ,srcFile multipart.File, header *multipart.FileHeader) error {
 	sshEntity := SSH{
 		Node: Node{
 			Host: user.Host,
 			Port: user.Port,
 		},
 	}
-	_, err := sshEntity.Connect(user.Username, user.Password)
+	_, err := sshEntity.Connect(username, password)
 	if err != nil {
 		return err
 	} else {

@@ -1,33 +1,31 @@
 package controllers
 
 import (
-	"github.com/astaxie/beego"
-	"github.com/genshen/webConsole/src/models"
+	"log"
+	"net/http"
 	"github.com/genshen/webConsole/src/utils"
+	"github.com/genshen/webConsole/src/models"
 )
 
-type UploadController struct {
-	BaseController
-}
+type FileUpload struct{}
 
-func (this *UploadController) UploadFile() {
-	file, header, err := this.GetFile("file")
+func (f FileUpload) ServeAfterAuthenticated(w http.ResponseWriter, r *http.Request, claims *utils.Claims, session *utils.Session) {
+	//file, header, err := this.GetFile("file")
+
+	r.ParseMultipartForm(32 << 20)
+	file, header, err := r.FormFile("file")
 	if err != nil {
-		beego.Error("getfile err ", err)
-		this.Abort("503")
+		log.Println("Error: getfile err ", err)
+		utils.Abort(w, "error", 503)
+		return
+	}
+	defer file.Close()
+
+	user := session.Value.(models.UserInfo)
+	if err := utils.UploadFile(utils.SftpNode{Host: user.Host, Port: user.Port}, user.Username, user.Password, file, header); err != nil {
+		log.Println("Error: sftp error:", err)
+		utils.Abort(w, "message", 503)
 	} else {
-		v := this.GetSession("userinfo")
-		if v == nil {
-			beego.Error("Cannot get Session data:", err)
-			this.Abort("503")
-		} else {
-			user := v.(models.UserInfo)
-			if err := utils.UploadFile(user, file, header); err != nil {
-				beego.Error("sftp error:", err)
-				this.Abort("503")
-			} else {
-				this.Ctx.WriteString("sussess")
-			}
-		}
+		w.Write([]byte("sussess"))
 	}
 }

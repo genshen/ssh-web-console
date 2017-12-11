@@ -1,58 +1,63 @@
 package controllers
 
 import (
+	"strconv"
+	"net/http"
 	"github.com/genshen/webConsole/src/models"
 	"github.com/genshen/webConsole/src/utils"
 )
 
-type MainController struct {
-	BaseController
+func Get(w http.ResponseWriter, r *http.Request) {
+	utils.ServeHTTPByName(w,r,"index.html")
 }
 
-func (this *MainController) Get() {
-	this.TplName = "index.html"
-}
-
-const (
-	SIGN_IN_FORM_TYPE_ERROR_VALID    = iota
-	SIGN_IN_FORM_TYPE_ERROR_PASSWORD
-	SIGN_IN_FORM_TYPE_ERROR_TEST
-)
-
-func (this *MainController) SignIn() {
-	var err error;
-	userinfo := models.UserInfo{}
-	userinfo.Host = this.GetString("host")
-	userinfo.Port, err = this.GetInt("port", 22)
-	userinfo.Username = this.GetString("username")
-	userinfo.Password = this.GetString("passwd")
-	if err == nil && userinfo.Host != "" && userinfo.Username != "" {
-		//try to login ssh account
-		ssh := utils.SSH{}
-		ssh.Node.Host = userinfo.Host
-		ssh.Node.Port = userinfo.Port
-		_, err := ssh.Connect(userinfo.Username, userinfo.Password)
-		if err != nil {
-			errUnmarshal := models.SignInFormValid{HasError: true, Message: SIGN_IN_FORM_TYPE_ERROR_PASSWORD}
-			this.Data["json"] = &errUnmarshal
-		} else {
-			defer ssh.Close()
-			// create session
-			if session, err := ssh.Client.NewSession(); err == nil {
-				if err := session.Run("whoami"); err == nil {
-					this.SetSession("userinfo", userinfo)
-					errUnmarshal := models.SignInFormValid{HasError: false}
-					this.Data["json"] = &errUnmarshal
-					this.ServeJSON()
-					return
-				}
-			}
-			errUnmarshal := models.SignInFormValid{HasError: true, Message: SIGN_IN_FORM_TYPE_ERROR_TEST}
-			this.Data["json"] = &errUnmarshal
-		}
+func SignIn(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Invalid request method.", 405)
 	} else {
-		errUnmarshal := models.SignInFormValid{HasError: true, Message: SIGN_IN_FORM_TYPE_ERROR_VALID}
-		this.Data["json"] = &errUnmarshal
+		var err error
+		var errUnmarshal models.SignInFormValid
+		err = r.ParseForm()
+		if err != nil {
+			panic(err)
+		}
+		userinfo := models.UserInfo{}
+		userinfo.Host = r.Form.Get("host")
+		port := r.Form.Get("port")
+		userinfo.Username = r.Form.Get("username")
+		userinfo.Password = r.Form.Get("passwd")
+
+		userinfo.Port, err = strconv.Atoi(port)
+		if err != nil {
+			userinfo.Port = 22
+		}
+
+		if userinfo.Host != "" && userinfo.Username != "" {
+			//try to login ssh account
+			ssh := utils.SSH{}
+			ssh.Node.Host = userinfo.Host
+			ssh.Node.Port = userinfo.Port
+			_, err := ssh.Connect(userinfo.Username, userinfo.Password)
+			if err != nil {
+				errUnmarshal = models.SignInFormValid{HasError: true, Message: models.SIGN_IN_FORM_TYPE_ERROR_PASSWORD}
+			} else {
+				defer ssh.Close()
+				// create session
+				if session, err := ssh.Client.NewSession(); err == nil {
+					if err := session.Run("whoami"); err == nil {
+						if token, expireUnix, err := utils.JwtNewToken(userinfo.Connection, utils.Config.Jwt.Issuer); err == nil {
+							errUnmarshal = models.SignInFormValid{HasError: false, Addition: token}
+							utils.ServeJSON(w, errUnmarshal)
+							utils.SessionStorage.Put(token, expireUnix, userinfo)
+							return
+						}
+					}
+				}
+				errUnmarshal = models.SignInFormValid{HasError: true, Message: models.SIGN_IN_FORM_TYPE_ERROR_TEST}
+			}
+		} else {
+			errUnmarshal = models.SignInFormValid{HasError: true, Message: models.SIGN_IN_FORM_TYPE_ERROR_VALID}
+		}
+		utils.ServeJSON(w, errUnmarshal)
 	}
-	this.ServeJSON()
 }
