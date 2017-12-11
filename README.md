@@ -2,14 +2,14 @@
 you can connect to your linux machine by ssh in your browser.
 
 ## Dependency
-```
+```bash
 go get -u github.com/kardianos/govendor  # ues [govendor](https://github.com/kardianos/govendor) to manager dependency
 ```
 
 ## How to build
 1. clone the repository [webConsole](https://github.com/genshen/webConsole) to any directory (example:/home/foo/webConsole) you like,and follow its README to build the frontend code.
 2. copy the built files to present project,and edit configure file:
-   ```
+   ```bash
    cp /home/foo/webConsole/dist/static/  ./static/
    cp /home/foo/webConsole/dist/index.html  ./views/index.html
    cp conf/config.yaml.example conf/config.yaml
