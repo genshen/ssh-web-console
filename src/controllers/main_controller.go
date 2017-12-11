@@ -8,7 +8,7 @@ import (
 )
 
 func Get(w http.ResponseWriter, r *http.Request) {
-	utils.ServeHTTPByName(w,r,"index.html")
+	utils.ServeHTTPByName(w, r, "index.html")
 }
 
 func SignIn(w http.ResponseWriter, r *http.Request) {

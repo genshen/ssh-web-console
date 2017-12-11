@@ -8,6 +8,8 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/genshen/webConsole/src/utils"
 	"github.com/genshen/webConsole/src/models"
+	"time"
+	"bytes"
 )
 
 type SSHWebSocketHandle struct {
@@ -59,10 +61,12 @@ func (c SSHWebSocketHandle) ServeAfterAuthenticated(w http.ResponseWriter, r *ht
 		return
 	}
 
-	done := make(chan bool, 3)
+	done := make(chan bool, 4)
+	runeChan := make(chan rune)
 	setDone := func() { done <- true }
 
-	writeMessageToSSHServer := func(wc io.WriteCloser) { //read messages from webSocket
+	// most messages are ssh output,not webSocket input,so we add a buffer in function readMessageFromSSHServer.
+	writeMessageToSSHServer := func(wc io.WriteCloser) { // read messages from webSocket
 		defer setDone()
 		for {
 			_, p, err := ws.ReadMessage()
@@ -78,38 +82,61 @@ func (c SSHWebSocketHandle) ServeAfterAuthenticated(w http.ResponseWriter, r *ht
 		}
 	}
 
+	// read turn from ssh server, and store it to byte buffer.
 	readMessageFromSSHServer := func(reader io.Reader) {
-		br := bufio.NewReader(reader)
-		//buf := []byte{}
 		go func() {
 			defer setDone()
+			// read rune.
+			br := bufio.NewReader(reader)
 			for {
 				r, size, err := br.ReadRune()
 				if err != nil {
 					log.Println("Error: error reading data from ssh server:", err)
 					return
 				}
-				if size > 0 {
+				if size > 0 { // store rune to buffer.
 					//if string(r) == "\\" { //todo bug: char '\'
 					//	continue
 					//}
-					err = ws.WriteMessage(websocket.TextMessage, []byte(string(r)))
-					if err != nil { //todo error
-						log.Println("Error: error sending data via webSocket:", err)
-						return
-					}
+					runeChan <- r
 				}
 			}
 		}()
 	}
 
+	writeBufferToWebSocket := func() {
+		defer setDone()
+		tick := time.NewTicker(time.Millisecond * time.Duration(utils.Config.SSH.BufferCheckerCycleTime)) // check buffer(if not empty,then write back to webSocket) every 120 ms.
+		//for range time.Tick(120 * time.Millisecond){}
+		defer tick.Stop()
+		// r := make(chan rune)
+		var buffer bytes.Buffer
+		for {
+			select {
+			case <-tick.C:
+				if buffer.Len() != 0 {
+					err = ws.WriteMessage(websocket.TextMessage, []byte(buffer.Bytes()))
+					if err != nil { //todo error
+						log.Println("Error: error sending data via webSocket:", err)
+						return
+					}
+				}
+				buffer.Reset()
+			case r := <-runeChan:
+				buffer.WriteRune(r)
+			}
+		}
+	}
+
 	if sshIOMode == utils.SSH_IO_MODE_CHANNEL {
 		go writeMessageToSSHServer(sshEntity.Channel)
 		go readMessageFromSSHServer(sshEntity.Channel)
+		go writeBufferToWebSocket()
 	} else {
 		go writeMessageToSSHServer(sshEntity.IO.StdIn)
 		go readMessageFromSSHServer(sshEntity.IO.StdOut)
-		go readMessageFromSSHServer(sshEntity.IO.StdErr)
+		go writeBufferToWebSocket()
+		// go readMessageFromSSHServer(sshEntity.IO.StdErr)
 	}
 	<-done
 	log.Println("Info: websocket finished!")

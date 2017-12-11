@@ -20,7 +20,8 @@ var Config struct {
 		ViewsDir   string `yaml:"views_dir"`
 	} `yaml:"site"`
 	SSH struct {
-		IOMode int `yaml:"io_mode"` //
+		IOMode                 int `yaml:"io_mode"`
+		BufferCheckerCycleTime int `yaml:"buffer_checker_cycle_time"`
 	} `yaml:"ssh"`
 	Jwt struct {
 		Secret        string `yaml:"jwt_secret"`

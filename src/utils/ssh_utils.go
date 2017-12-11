@@ -2,11 +2,11 @@ package utils
 
 import (
 	"io"
-	"net"
 	"log"
 	"errors"
 	"strconv"
 	"golang.org/x/crypto/ssh"
+	"net"
 )
 
 const (
@@ -83,7 +83,6 @@ type ptyRequestMsg struct {
 	Modelist string
 }
 
-//@deprecated
 func (this *SSH) ConfigShellChannel(cols, rows uint32) (ssh.Channel, error) {
 	channel, requests, err := this.Client.Conn.OpenChannel("session", nil)
 	if err != nil {
@@ -101,7 +100,7 @@ func (this *SSH) ConfigShellChannel(cols, rows uint32) (ssh.Channel, error) {
 		}
 	}()
 
-	//thanks:https://github.com/shibingli/webconsole/
+	//see https://github.com/golang/crypto/blob/master/ssh/example_test.go
 	modes := ssh.TerminalModes{ //todo configure
 		ssh.ECHO: 1,
 		ssh.TTY_OP_ISPEED: 14400,
@@ -150,7 +149,6 @@ func (this *SSH) ConfigShellChannel(cols, rows uint32) (ssh.Channel, error) {
 	return channel, nil
 }
 
-//@deprecated
 func (this *SSH) ConfigShellSession(cols, rows int) (*ssh.Session, error) {
 	session, err := this.Client.NewSession()
 	if err != nil {
@@ -166,7 +164,7 @@ func (this *SSH) ConfigShellSession(cols, rows int) (*ssh.Session, error) {
 	}
 
 	modes := ssh.TerminalModes{
-		ssh.ECHO:          1,
+		ssh.ECHO:          1,  // disable echo
 		ssh.TTY_OP_ISPEED: 14400, // input speed = 14.4kbaud
 		ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
 	}
