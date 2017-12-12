@@ -14,8 +14,8 @@ func init() {
 		})
 	} else {
 		fs := justFilesFilesystem{http.Dir(utils.Config.Site.StaticDir)}
-		//http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(fs)))
-		http.Handle("/static/", http.FileServer(fs))
+		http.Handle(utils.Config.Site.StaticPrefix, http.StripPrefix(utils.Config.Site.StaticPrefix, http.FileServer(fs)))
+		//http.Handle("/static/", http.FileServer(fs))
 	}
 
 	http.HandleFunc("/", controllers.Get)
@@ -25,7 +25,7 @@ func init() {
 }
 
 func Run() {
-	http.ListenAndServe(utils.Config.Site.ListenAddr,nil)
+	http.ListenAndServe(utils.Config.Site.ListenAddr, nil)
 }
 
 /*

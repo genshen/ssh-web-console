@@ -13,11 +13,12 @@ const (
 
 var Config struct {
 	Site struct {
-		AppName    string `yaml:"app_name"`
-		RunMode    string `yaml:"runmode"`
-		ListenAddr string `yaml:"listen_addr"`
-		StaticDir  string `yaml:"static_dir"`
-		ViewsDir   string `yaml:"views_dir"`
+		AppName      string `yaml:"app_name"`
+		RunMode      string `yaml:"runmode"`
+		ListenAddr   string `yaml:"listen_addr"`
+		StaticPrefix string `yaml:"static_prefix"`
+		StaticDir    string `yaml:"static_dir"`
+		ViewsDir     string `yaml:"views_dir"`
 	} `yaml:"site"`
 	SSH struct {
 		IOMode                 int `yaml:"io_mode"`

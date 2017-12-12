@@ -2,6 +2,7 @@ site:
   appname: webConsole
   listen_addr: :2222
   runmode: prod
+  static_prefix: /static/
   static_dir: static/
   views_dir: views/
 ssh:

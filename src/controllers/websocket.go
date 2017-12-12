@@ -69,13 +69,12 @@ func (c SSHWebSocketHandle) ServeAfterAuthenticated(w http.ResponseWriter, r *ht
 	writeMessageToSSHServer := func(wc io.WriteCloser) { // read messages from webSocket
 		defer setDone()
 		for {
-			_, p, err := ws.ReadMessage()
+			msgType, p, err := ws.ReadMessage()
 			if err != nil {
 				log.Println("Error: error reading webSocket message:", err)
 				return
 			}
-			_, err = wc.Write(p)
-			if err != nil {
+			if err = DispatchMessage(msgType, p, wc); err != nil {
 				log.Println("Error: error sending data to ssh server:", err)
 				return
 			}
