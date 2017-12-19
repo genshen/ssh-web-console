@@ -15,11 +15,15 @@ var Config struct {
 	Site struct {
 		AppName      string `yaml:"app_name"`
 		RunMode      string `yaml:"runmode"`
+		DeployHost   string `yaml:"deploy_host"`
 		ListenAddr   string `yaml:"listen_addr"`
 		StaticPrefix string `yaml:"static_prefix"`
 		StaticDir    string `yaml:"static_dir"`
 		ViewsDir     string `yaml:"views_dir"`
 	} `yaml:"site"`
+	VPN struct {
+		Enable bool `yaml:"enable"`
+	} `yaml:"vpn_juniper"`
 	SSH struct {
 		IOMode                 int `yaml:"io_mode"`
 		BufferCheckerCycleTime int `yaml:"buffer_checker_cycle_time"`
