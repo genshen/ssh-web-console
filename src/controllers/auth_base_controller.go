@@ -10,6 +10,7 @@ import (
 type AfterAuthenticated interface {
 	// make sure token and session is not nil.
 	ServeAfterAuthenticated(w http.ResponseWriter, r *http.Request, token *utils.Claims, session *utils.Session)
+	ShouldClearSessionAfterExec() bool
 }
 
 func AuthPreChecker(i AfterAuthenticated) func(w http.ResponseWriter, r *http.Request) {
@@ -42,8 +43,12 @@ func AuthPreChecker(i AfterAuthenticated) func(w http.ResponseWriter, r *http.Re
 				utils.Abort(w, "Error: Cannot get Session data:", 400)
 				log.Println("Error: Cannot get Session data for token", token)
 			} else {
-				defer utils.SessionStorage.Delete(token) // clear session after ssh closed.
-				i.ServeAfterAuthenticated(w, r, claims, &session)
+				if i.ShouldClearSessionAfterExec() {
+					defer utils.SessionStorage.Delete(token)
+					i.ServeAfterAuthenticated(w, r, claims, &session)
+				}else{
+					i.ServeAfterAuthenticated(w, r, claims, &session)
+				}
 			}
 		}
 	}

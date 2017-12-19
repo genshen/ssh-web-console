@@ -9,6 +9,11 @@ import (
 
 type FileUpload struct{}
 
+
+func (c FileUpload) ShouldClearSessionAfterExec() bool{
+	return false
+}
+
 func (f FileUpload) ServeAfterAuthenticated(w http.ResponseWriter, r *http.Request, claims *utils.Claims, session *utils.Session) {
 	//file, header, err := this.GetFile("file")
 

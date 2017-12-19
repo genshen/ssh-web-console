@@ -3,16 +3,20 @@ package controllers
 import (
 	"io"
 	"log"
+	"time"
 	"bufio"
 	"net/http"
 	"github.com/gorilla/websocket"
 	"github.com/genshen/webConsole/src/utils"
 	"github.com/genshen/webConsole/src/models"
-	"time"
-	"bytes"
 )
 
 type SSHWebSocketHandle struct {
+}
+
+// clear session after ssh closed.
+func (c SSHWebSocketHandle) ShouldClearSessionAfterExec() bool{
+	return true
 }
 
 //to handle webSocket connection
@@ -65,7 +69,7 @@ func (c SSHWebSocketHandle) ServeAfterAuthenticated(w http.ResponseWriter, r *ht
 	runeChan := make(chan rune)
 	setDone := func() { done <- true }
 
-	// most messages are ssh output,not webSocket input,so we add a buffer in function readMessageFromSSHServer.
+	// most messages are ssh output,not webSocket input,so we add a webSocketWriterBuffer in function readMessageFromSSHServer.
 	writeMessageToSSHServer := func(wc io.WriteCloser) { // read messages from webSocket
 		defer setDone()
 		for {
@@ -75,13 +79,13 @@ func (c SSHWebSocketHandle) ServeAfterAuthenticated(w http.ResponseWriter, r *ht
 				return
 			}
 			if err = DispatchMessage(msgType, p, wc); err != nil {
-				log.Println("Error: error sending data to ssh server:", err)
+				log.Println("Error: error write data to ssh server:", err)
 				return
 			}
 		}
 	}
 
-	// read turn from ssh server, and store it to byte buffer.
+	// read turn from ssh server, and store it to byte webSocketWriterBuffer.
 	readMessageFromSSHServer := func(reader io.Reader) {
 		defer setDone()
 		// read rune.
@@ -92,32 +96,30 @@ func (c SSHWebSocketHandle) ServeAfterAuthenticated(w http.ResponseWriter, r *ht
 				log.Println("Error: error reading data from ssh server:", err)
 				return
 			}
-			if size > 0 { // store rune to buffer. (?) may have bug: char '\', if not use buffer.
+			if size > 0 { // store rune to webSocketWriterBuffer. (?) may have bug: char '\', if not use webSocketWriterBuffer.
 				runeChan <- r
 			}
 		}
 	}
 
+	var webSocketWriterBuffer WebSocketWriterBuffer
+	defer webSocketWriterBuffer.Flush(websocket.TextMessage, ws)
+
 	writeBufferToWebSocket := func() {
 		defer setDone()
-		tick := time.NewTicker(time.Millisecond * time.Duration(utils.Config.SSH.BufferCheckerCycleTime)) // check buffer(if not empty,then write back to webSocket) every 120 ms.
+		tick := time.NewTicker(time.Millisecond * time.Duration(utils.Config.SSH.BufferCheckerCycleTime)) // check webSocketWriterBuffer(if not empty,then write back to webSocket) every 120 ms.
 		//for range time.Tick(120 * time.Millisecond){}
 		defer tick.Stop()
 		// r := make(chan rune)
-		var buffer bytes.Buffer
 		for {
 			select {
 			case <-tick.C:
-				if buffer.Len() != 0 {
-					err = ws.WriteMessage(websocket.TextMessage, []byte(buffer.Bytes()))
-					if err != nil { //todo error
-						log.Println("Error: error sending data via webSocket:", err)
-						return
-					}
+				if err := webSocketWriterBuffer.Flush(websocket.TextMessage, ws); err != nil {
+					log.Println("Error: error sending data via webSocket:", err)
+					return
 				}
-				buffer.Reset()
 			case r := <-runeChan:
-				buffer.WriteRune(r)
+				webSocketWriterBuffer.WriteRune(r)
 			}
 		}
 	}
