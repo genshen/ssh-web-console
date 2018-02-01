@@ -51,10 +51,10 @@ func GetQueryInt32(r *http.Request, key string, defaultValue uint32) uint32 {
 	return uint32(value)
 }
 
-// serve all views files
+// serve all views files from memory storage.
 // basic idea: https://github.com/bouk/staticfiles
 type staticFilesFile struct {
-	data  string
+	data  []byte
 	mime  string
 	mtime time.Time
 	// size is the size before compression. If 0, it means the data is uncompressed
@@ -69,7 +69,7 @@ var staticFiles = make(map[string]*staticFilesFile)
 // It defaults to http.NotFound but can be overwritten
 var NotFound = http.NotFound
 
-// read all files in views directory to map "staticFiles"
+// read all files in views directory and map to "staticFiles"
 func initHttpUtils() {
 	files := processDir(Config.Site.ViewsDir, "")
 	for _, file := range files {
@@ -99,7 +99,7 @@ func initHttpUtils() {
 		file = strings.Replace(file, "\\", "/", -1)
 		if b2.Len() < b.Len() {
 			staticFiles[file] = &staticFilesFile{
-				data:  b2.String(),
+				data:  b2.Bytes(),
 				mime:  mime.TypeByExtension(filepath.Ext(file)),
 				mtime: time.Unix(stat.ModTime().Unix(), 0),
 				size:  stat.Size(),
@@ -107,7 +107,7 @@ func initHttpUtils() {
 			}
 		} else {
 			staticFiles[file] = &staticFilesFile{
-				data:  b.String(),
+				data:  b.Bytes(),
 				mime:  mime.TypeByExtension(filepath.Ext(file)),
 				mtime: time.Unix(stat.ModTime().Unix(), 0),
 				hash:  hex.EncodeToString(hash.Sum(nil)),
@@ -119,7 +119,7 @@ func initHttpUtils() {
 	}
 }
 
-// todo memory!!
+// todo large memory!!
 func processDir(prefix, dir string) (fileSlice []string) {
 	files, err := ioutil.ReadDir(filepath.Join(prefix, dir))
 	var allFiles []string
@@ -177,17 +177,17 @@ func ServeHTTPByName(rw http.ResponseWriter, req *http.Request, filename string)
 		header.Set("Content-Type", f.mime)
 
 		// Check if the asset is compressed in the binary
-		if f.size == 0 {
+		if f.size == 0 { // not compressed
 			header.Set("Content-Length", strconv.Itoa(len(f.data)))
-			io.WriteString(rw, f.data)
+			rw.Write(f.data)
 		} else {
 			if header.Get("Content-Encoding") == "" && strings.Contains(req.Header.Get("Accept-Encoding"), "gzip") {
 				header.Set("Content-Encoding", "gzip")
 				header.Set("Content-Length", strconv.Itoa(len(f.data)))
-				io.WriteString(rw, f.data)
+				rw.Write(f.data)
 			} else {
 				header.Set("Content-Length", strconv.Itoa(int(f.size)))
-				reader, _ := gzip.NewReader(strings.NewReader(f.data))
+				reader, _ := gzip.NewReader(bytes.NewReader(f.data))
 				io.Copy(rw, reader)
 				reader.Close()
 			}
@@ -207,9 +207,9 @@ func Open(name string) (io.ReadCloser, error) {
 	}
 
 	if f.size == 0 {
-		return ioutil.NopCloser(strings.NewReader(f.data)), nil
+		return ioutil.NopCloser(bytes.NewReader(f.data)), nil
 	}
-	return gzip.NewReader(strings.NewReader(f.data))
+	return gzip.NewReader(bytes.NewReader(f.data))
 }
 
 // ModTime returns the modification time of the original file.
