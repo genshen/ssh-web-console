@@ -13,6 +13,8 @@ func initSessionUtils() {
 	SessionStorage.new()
 }
 
+// use jwt string as session key,
+// store user information(username and password) in Session.
 type SessionManager struct {
 	sessions map[string]Session
 }
@@ -30,10 +32,11 @@ func (s *Session) isExpired(timeNow int64) bool {
 }
 
 func (s *SessionManager) new() {
-	s.sessions = make(map[string](Session))
+	s.sessions = make(map[string]Session)
 }
 
 /**
+* add a new session to session manager.
 * @params:token: token string
 * expire: unix time for expire
 * password: ssh user password

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"github.com/genshen/webConsole/src/controllers"
 	"github.com/genshen/webConsole/src/utils"
+	"github.com/genshen/webConsole/src/controllers/files"
 )
 
 func init() {
@@ -20,8 +21,11 @@ func init() {
 
 	http.HandleFunc("/", controllers.Get)
 	http.HandleFunc("/signin", controllers.SignIn)
-	http.HandleFunc("/ssh/uploadfile", controllers.AuthPreChecker(controllers.FileUpload{}))
+	http.HandleFunc("/sftp/upload", controllers.AuthPreChecker(files.FileUpload{}))
+	http.HandleFunc("/sftp/ls", controllers.AuthPreChecker(files.List{}))
+	http.HandleFunc("/sftp/dl", controllers.AuthPreChecker(files.Download{}))
 	http.HandleFunc("/ws/ssh", controllers.AuthPreChecker(controllers.SSHWebSocketHandle{}))
+	http.HandleFunc("/ws/sftp", controllers.AuthPreChecker(files.SftpEstablish{}))
 }
 
 func Run() {

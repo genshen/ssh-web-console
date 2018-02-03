@@ -33,7 +33,8 @@ type SSH struct {
 }
 
 //see: http://www.nljb.net/default/Go-SSH-%E4%BD%BF%E7%94%A8/
-func (this *SSH) Connect(username, password string) (*ssh.Client, error) {
+// establish a ssh connection. if success return nil, than can operate ssh connection via pointer SSH.Client in struct SSH.
+func (s *SSH) Connect(username, password string)  error {
 	//var hostKey ssh.PublicKey
 
 	// An SSH client is represented with a ClientConn.
@@ -52,25 +53,25 @@ func (this *SSH) Connect(username, password string) (*ssh.Client, error) {
 		},
 	}
 
-	client, err := ssh.Dial("tcp", this.Node.Host+":"+strconv.Itoa(this.Node.Port), config)
+	client, err := ssh.Dial("tcp", s.Node.Host+":"+strconv.Itoa(s.Node.Port), config)
 	if err != nil {
-		return nil, err
+		return  err
 	}
-	this.Client = client
-	return client, nil
+	s.Client = client
+	return nil
 }
 
-func (this *SSH) Close() {
-	if this.hasChannel {
-		this.Channel.Close()
+func (s *SSH) Close() {
+	if s.hasChannel {
+		s.Channel.Close()
 	}
 
-	if this.Session != nil {
-		this.Session.Close()
+	if s.Session != nil {
+		s.Session.Close()
 	}
 
-	if this.Client != nil {
-		this.Client.Close()
+	if s.Client != nil {
+		s.Client.Close()
 	}
 }
 

@@ -33,6 +33,12 @@
 			"revisionTime": "2013-11-06T22:25:44Z"
 		},
 		{
+			"checksumSHA1": "7uFOzFHJ/EQhU2e6HoYI1faCcVg=",
+			"path": "github.com/oklog/ulid",
+			"revision": "b38f8fcd3b93fd0e63dae168550d51a485185d60",
+			"revisionTime": "2017-11-28T05:51:21Z"
+		},
+		{
 			"checksumSHA1": "LtUkBaUADvX/JMTgYMcPO8QA9Qo=",
 			"path": "github.com/pkg/errors",
 			"revision": "c605e284fe17294bda444b34710735b29d1a9d90",

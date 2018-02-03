@@ -14,7 +14,7 @@ type UserInfo struct {
 	Password string `json:"-"`
 }
 
-type SignInFormValid struct {
+type JsonResponse struct {
 	HasError bool        `json:"has_error"`
 	Message  interface{} `json:"message"`
 	Addition interface{} `json:"addition"`

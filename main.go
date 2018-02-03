@@ -26,7 +26,7 @@ func setupSSH() {
 			Port: 22,
 		},
 	}
-	_, err := sshEntity.Connect("genshen", "genshen1234")
+	err := sshEntity.Connect("genshen", "genshen1234")
 	check(err, "connect")
 	defer sshEntity.Client.Close()
 

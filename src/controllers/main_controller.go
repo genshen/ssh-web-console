@@ -23,7 +23,7 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request method.", 405)
 	} else {
 		var err error
-		var errUnmarshal models.SignInFormValid
+		var errUnmarshal models.JsonResponse
 		err = r.ParseForm()
 		if err != nil {
 			panic(err)
@@ -44,26 +44,26 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 			ssh := utils.SSH{}
 			ssh.Node.Host = userinfo.Host
 			ssh.Node.Port = userinfo.Port
-			_, err := ssh.Connect(userinfo.Username, userinfo.Password)
+			err := ssh.Connect(userinfo.Username, userinfo.Password)
 			if err != nil {
-				errUnmarshal = models.SignInFormValid{HasError: true, Message: models.SIGN_IN_FORM_TYPE_ERROR_PASSWORD}
+				errUnmarshal = models.JsonResponse{HasError: true, Message: models.SIGN_IN_FORM_TYPE_ERROR_PASSWORD}
 			} else {
 				defer ssh.Close()
 				// create session
 				if session, err := ssh.Client.NewSession(); err == nil {
 					if err := session.Run("whoami"); err == nil {
 						if token, expireUnix, err := utils.JwtNewToken(userinfo.Connection, utils.Config.Jwt.Issuer); err == nil {
-							errUnmarshal = models.SignInFormValid{HasError: false, Addition: token}
+							errUnmarshal = models.JsonResponse{HasError: false, Addition: token}
 							utils.ServeJSON(w, errUnmarshal)
 							utils.SessionStorage.Put(token, expireUnix, userinfo)
 							return
 						}
 					}
 				}
-				errUnmarshal = models.SignInFormValid{HasError: true, Message: models.SIGN_IN_FORM_TYPE_ERROR_TEST}
+				errUnmarshal = models.JsonResponse{HasError: true, Message: models.SIGN_IN_FORM_TYPE_ERROR_TEST}
 			}
 		} else {
-			errUnmarshal = models.SignInFormValid{HasError: true, Message: models.SIGN_IN_FORM_TYPE_ERROR_VALID}
+			errUnmarshal = models.JsonResponse{HasError: true, Message: models.SIGN_IN_FORM_TYPE_ERROR_VALID}
 		}
 		utils.ServeJSON(w, errUnmarshal)
 	}

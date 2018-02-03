@@ -19,9 +19,13 @@ func (c SSHWebSocketHandle) ShouldClearSessionAfterExec() bool{
 	return true
 }
 
-//to handle webSocket connection
-func (c SSHWebSocketHandle) ServeAfterAuthenticated(w http.ResponseWriter, r *http.Request, claims *utils.Claims, session *utils.Session) {
-	// init websocket connection
+// handle webSocket connection.
+// first,we establish a ssh connection to ssh server when a webSocket comes;
+// then we deliver ssh data via ssh connection between browser and ssh server.
+// That is, read webSocket data from browser (e.g. 'ls' command) and send data to ssh server via ssh connection;
+// the other hand, read returned ssh data from ssh server and write back to browser via webSocket API.
+func (c SSHWebSocketHandle) ServeAfterAuthenticated(w http.ResponseWriter, r *http.Request, claims *utils.Claims, session utils.Session) {
+	// init webSocket connection
 	ws, err := websocket.Upgrade(w, r, nil, 1024, 1024)
 	if _, ok := err.(websocket.HandshakeError); ok {
 		utils.Abort(w, "Not a websocket handshake", 400)
@@ -42,7 +46,7 @@ func (c SSHWebSocketHandle) ServeAfterAuthenticated(w http.ResponseWriter, r *ht
 		},
 	}
 	userInfo := session.Value.(models.UserInfo)
-	_, err = sshEntity.Connect(userInfo.Username, userInfo.Password)
+	err = sshEntity.Connect(userInfo.Username, userInfo.Password)
 	if err != nil {
 		utils.Abort(w, "Cannot setup ssh connection:", 500)
 		log.Println("Error: Cannot setup ssh connection:", err)
