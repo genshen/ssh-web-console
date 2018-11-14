@@ -1,12 +1,10 @@
 package controllers
 
 import (
-	"io"
-	"encoding/json"
 	"encoding/base64"
+	"encoding/json"
 	"github.com/genshen/webConsole/src/models"
-	"bytes"
-	"github.com/gorilla/websocket"
+	"io"
 )
 
 func DispatchMessage(messageType int, message []byte, wc io.WriteCloser) error {
@@ -26,21 +24,6 @@ func DispatchMessage(messageType int, message []byte, wc io.WriteCloser) error {
 				return err
 			}
 		}
-	}
-	return nil
-}
-
-type WebSocketWriterBuffer struct {
-	bytes.Buffer
-}
-
-func (b *WebSocketWriterBuffer) Flush(messageType int, ws *websocket.Conn) error {
-	if b.Len() != 0 {
-		err := ws.WriteMessage(messageType, []byte(b.Bytes()))
-		if err != nil {
-			return err
-		}
-		b.Reset()
 	}
 	return nil
 }

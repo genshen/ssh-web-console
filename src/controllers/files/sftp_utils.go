@@ -1,17 +1,17 @@
 package files
 
 import (
-	"sync"
-	"github.com/pkg/sftp"
 	"github.com/genshen/webConsole/src/utils"
+	"github.com/pkg/sftp"
 	"log"
+	"sync"
 )
 
 type SftpNode utils.Node // struct alias.
 
 type SftpEntity struct {
-	sshEntity  *utils.SSH   // from utils/ssh_utils
-	sftpClient *sftp.Client // sftp session created by sshEntity.Client..
+	sshEntity  *utils.SSHShellSession // from utils/ssh_utils
+	sftpClient *sftp.Client           // sftp session created by sshEntity.client..
 }
 
 // close sftp session and ssh client
@@ -30,7 +30,7 @@ var (
 )
 
 func NewSftpEntity(user SftpNode, username, password string) (SftpEntity, error) {
-	sshEntity := utils.SSH{
+	sshEntity := utils.SSHShellSession{
 		Node: utils.Node{
 			Host: user.Host,
 			Port: user.Port,
@@ -43,11 +43,15 @@ func NewSftpEntity(user SftpNode, username, password string) (SftpEntity, error)
 	}
 
 	// make a new sftp client
-	client, err := sftp.NewClient(sshEntity.Client)
-	if err != nil {
+	if sshClient, err := sshEntity.GetClient(); err != nil {
 		return SftpEntity{}, err
+	} else {
+		client, err := sftp.NewClient(sshClient)
+		if err != nil {
+			return SftpEntity{}, err
+		}
+		return SftpEntity{sshEntity: &sshEntity, sftpClient: client}, nil
 	}
-	return SftpEntity{sshEntity: &sshEntity, sftpClient: client}, nil
 }
 
 // add a sftp client to subscribers list.
@@ -75,7 +79,7 @@ func Fork(key string) (SftpEntity, bool) {
 }
 
 // make a copy of SftpEntity matched with given key.
-// return sftp.Client pointer or nil pointer.
+// return sftp.client pointer or nil pointer.
 func ForkSftpClient(key string) (*sftp.Client) {
 	mutex.Lock()
 	defer mutex.Unlock()

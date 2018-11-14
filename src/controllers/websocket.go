@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"bufio"
 	"github.com/genshen/webConsole/src/models"
 	"github.com/genshen/webConsole/src/utils"
 	"github.com/gorilla/websocket"
@@ -10,6 +9,8 @@ import (
 	"net/http"
 	"time"
 )
+
+//const SSH_EGG = `genshen<genshenchu@gmail.com> https://github.com/genshen/sshWebConsole"`
 
 type SSHWebSocketHandle struct {
 }
@@ -39,39 +40,52 @@ func (c SSHWebSocketHandle) ServeAfterAuthenticated(w http.ResponseWriter, r *ht
 	defer ws.Close()
 
 	//setup ssh connection
-	sshEntity := utils.SSH{
+	sshEntity := utils.SSHShellSession{
 		Node: utils.Node{
 			Host: claims.Host,
 			Port: claims.Port,
 		},
 	}
+	// set io for ssh session
+	var wsBuff WebSocketBufferWriter
+	sshEntity.WriterPipe = &wsBuff
+
+	var sshConn utils.SSHConnInterface = &sshEntity // set interface
 	userInfo := session.Value.(models.UserInfo)
-	err = sshEntity.Connect(userInfo.Username, userInfo.Password)
+	err = sshConn.Connect(userInfo.Username, userInfo.Password)
 	if err != nil {
 		utils.Abort(w, "Cannot setup ssh connection:", 500)
 		log.Println("Error: Cannot setup ssh connection:", err)
 		return
 	}
-	defer sshEntity.Close()
+	defer sshConn.Close()
 
+	// config ssh
 	cols := utils.GetQueryInt32(r, "cols", 120)
 	rows := utils.GetQueryInt32(r, "rows", 32)
-
-	//set ssh shell session
-	if _, err = sshEntity.ConfigShellSession(int(cols), int(rows)); err != nil {
-		log.Println("Error: configure ssh session error:", err)
+	if err = sshConn.Config(cols, rows); err != nil {
+		log.Println("Error: configure ssh error:", err)
 		return
 	}
 
-	done := make(chan bool, 4)
-	runeChan := make(chan rune)
+	// an egg:
+	//if err := sshEntity.Session.Setenv("SSH_EGG", SSH_EGG); err != nil {
+	//	log.Println(err)
+	//}
+	// after configure, the WebSocket is ok.
+	defer wsBuff.Flush(websocket.TextMessage, ws)
+
+	done := make(chan bool, 3)
 	setDone := func() { done <- true }
 
-	// most messages are ssh output,not webSocket input,so we add a webSocketWriterBuffer in function readMessageFromSSHServer.
+	// most messages are ssh output, not webSocket input
 	writeMessageToSSHServer := func(wc io.WriteCloser) { // read messages from webSocket
 		defer setDone()
 		for {
 			msgType, p, err := ws.ReadMessage()
+			// if WebSocket is closed by some reason, then this func will return,
+			// and 'done' channel will be set, the outer func will reach to the end.
+			// then ssh session will be closed in defer.
 			if err != nil {
 				log.Println("Error: error reading webSocket message:", err)
 				return
@@ -83,50 +97,38 @@ func (c SSHWebSocketHandle) ServeAfterAuthenticated(w http.ResponseWriter, r *ht
 		}
 	}
 
-	// read turn from ssh server, and store it to byte webSocketWriterBuffer.
-	readMessageFromSSHServer := func(reader io.Reader) {
-		defer setDone()
-		// read rune.
-		br := bufio.NewReader(reader)
-		for {
-			r, size, err := br.ReadRune()
-			if err != nil {
-				log.Println("Error: error reading data from ssh server:", err)
-				return
-			}
-			if size > 0 { // store rune to webSocketWriterBuffer. (?) may have bug: char '\', if not use webSocketWriterBuffer.
-				runeChan <- r
-			}
-		}
-	}
-
-	var webSocketWriterBuffer WebSocketWriterBuffer
-	defer webSocketWriterBuffer.Flush(websocket.TextMessage, ws)
-
+	stopper := make(chan bool) // timer stopper
+	// check webSocketWriterBuffer(if not empty,then write back to webSocket) every 120 ms.
 	writeBufferToWebSocket := func() {
 		defer setDone()
-		tick := time.NewTicker(time.Millisecond * time.Duration(utils.Config.SSH.BufferCheckerCycleTime)) // check webSocketWriterBuffer(if not empty,then write back to webSocket) every 120 ms.
+		tick := time.NewTicker(time.Millisecond * time.Duration(utils.Config.SSH.BufferCheckerCycleTime))
 		//for range time.Tick(120 * time.Millisecond){}
 		defer tick.Stop()
-		// r := make(chan rune)
 		for {
 			select {
 			case <-tick.C:
-				if err := webSocketWriterBuffer.Flush(websocket.TextMessage, ws); err != nil {
+				if err := wsBuff.Flush(websocket.TextMessage, ws); err != nil {
 					log.Println("Error: error sending data via webSocket:", err)
 					return
 				}
-			case r := <-runeChan:
-				webSocketWriterBuffer.WriteRune(r)
+			case <-stopper:
+				return
 			}
 		}
 	}
 
-	go writeMessageToSSHServer(sshEntity.IO.StdIn)
-	go readMessageFromSSHServer(sshEntity.IO.StdOut)
-	go readMessageFromSSHServer(sshEntity.IO.StdErr)
+	go writeMessageToSSHServer(sshEntity.StdinPipe)
 	go writeBufferToWebSocket()
+	go func() {
+		defer setDone()
+		if err := sshEntity.Session.Wait(); err != nil {
+			log.Println("ssh exist from server", err)
+		}
+		// if ssh is closed (wait returns), then 'done', web socket will be closed.
+		// by the way, buffered data will be flushed before closing WebSocket.
+	}()
 
 	<-done
+	stopper <- true // stop tick timer(if tick is finished by due to the bad WebSocket, this line will just only set channel(no bad effect). )
 	log.Println("Info: websocket finished!")
 }
