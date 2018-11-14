@@ -25,7 +25,6 @@ var Config struct {
 		Enable bool `yaml:"enable"`
 	} `yaml:"vpn_juniper"`
 	SSH struct {
-		IOMode                 int `yaml:"io_mode"`
 		BufferCheckerCycleTime int `yaml:"buffer_checker_cycle_time"`
 	} `yaml:"ssh"`
 	Jwt struct {

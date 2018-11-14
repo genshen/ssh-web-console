@@ -1,21 +1,21 @@
 package controllers
 
 import (
+	"bufio"
+	"github.com/genshen/webConsole/src/models"
+	"github.com/genshen/webConsole/src/utils"
+	"github.com/gorilla/websocket"
 	"io"
 	"log"
-	"time"
-	"bufio"
 	"net/http"
-	"github.com/gorilla/websocket"
-	"github.com/genshen/webConsole/src/utils"
-	"github.com/genshen/webConsole/src/models"
+	"time"
 )
 
 type SSHWebSocketHandle struct {
 }
 
 // clear session after ssh closed.
-func (c SSHWebSocketHandle) ShouldClearSessionAfterExec() bool{
+func (c SSHWebSocketHandle) ShouldClearSessionAfterExec() bool {
 	return true
 }
 
@@ -57,14 +57,8 @@ func (c SSHWebSocketHandle) ServeAfterAuthenticated(w http.ResponseWriter, r *ht
 	cols := utils.GetQueryInt32(r, "cols", 120)
 	rows := utils.GetQueryInt32(r, "rows", 32)
 
-	//set ssh IO mode and ssh shell
-	sshIOMode := utils.Config.SSH.IOMode
-	if sshIOMode == utils.SSH_IO_MODE_CHANNEL {
-		_, err = sshEntity.ConfigShellChannel(cols, rows)
-	} else {
-		_, err = sshEntity.ConfigShellSession(int(cols), int(rows))
-	}
-	if err != nil {
+	//set ssh shell session
+	if _, err = sshEntity.ConfigShellSession(int(cols), int(rows)); err != nil {
 		log.Println("Error: configure ssh session error:", err)
 		return
 	}
@@ -128,16 +122,11 @@ func (c SSHWebSocketHandle) ServeAfterAuthenticated(w http.ResponseWriter, r *ht
 		}
 	}
 
-	if sshIOMode == utils.SSH_IO_MODE_CHANNEL {
-		go writeMessageToSSHServer(sshEntity.Channel)
-		go readMessageFromSSHServer(sshEntity.Channel)
-		go writeBufferToWebSocket()
-	} else {
-		go writeMessageToSSHServer(sshEntity.IO.StdIn)
-		go readMessageFromSSHServer(sshEntity.IO.StdOut)
-		go readMessageFromSSHServer(sshEntity.IO.StdErr)
-		go writeBufferToWebSocket()
-	}
+	go writeMessageToSSHServer(sshEntity.IO.StdIn)
+	go readMessageFromSSHServer(sshEntity.IO.StdOut)
+	go readMessageFromSSHServer(sshEntity.IO.StdErr)
+	go writeBufferToWebSocket()
+
 	<-done
 	log.Println("Info: websocket finished!")
 }

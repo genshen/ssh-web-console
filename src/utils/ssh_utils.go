@@ -1,12 +1,12 @@
 package utils
 
 import (
+	"errors"
+	"golang.org/x/crypto/ssh"
 	"io"
 	"log"
-	"errors"
-	"strconv"
-	"golang.org/x/crypto/ssh"
 	"net"
+	"strconv"
 )
 
 const (
@@ -14,27 +14,27 @@ const (
 	SSH_IO_MODE_SESSION = 1
 )
 
-type Node struct{
+type Node struct {
 	Host string // host, e.g: ssh.example.com
 	Port int    //port,default value is 22
 }
 
 type SSH struct {
 	Node Node
-	IO struct {
+	IO   struct {
 		StdIn  io.WriteCloser
 		StdOut io.Reader
 		StdErr io.Reader
 	}
 	Client     *ssh.Client
-	Channel    ssh.Channel
-	hasChannel bool
-	Session    *ssh.Session
+	Channel    ssh.Channel // used only in channel mode.
+	hasChannel bool // can be true only in channel mode.
+	Session    *ssh.Session // used only in session mode.
 }
 
 //see: http://www.nljb.net/default/Go-SSH-%E4%BD%BF%E7%94%A8/
 // establish a ssh connection. if success return nil, than can operate ssh connection via pointer SSH.Client in struct SSH.
-func (s *SSH) Connect(username, password string)  error {
+func (s *SSH) Connect(username, password string) error {
 	//var hostKey ssh.PublicKey
 
 	// An SSH client is represented with a ClientConn.
@@ -55,7 +55,7 @@ func (s *SSH) Connect(username, password string)  error {
 
 	client, err := ssh.Dial("tcp", s.Node.Host+":"+strconv.Itoa(s.Node.Port), config)
 	if err != nil {
-		return  err
+		return err
 	}
 	s.Client = client
 	return nil
@@ -84,6 +84,8 @@ type ptyRequestMsg struct {
 	Modelist string
 }
 
+// deprecated.
+// use session ConfigShellSession instead.
 func (this *SSH) ConfigShellChannel(cols, rows uint32) (ssh.Channel, error) {
 	channel, requests, err := this.Client.Conn.OpenChannel("session", nil)
 	if err != nil {
@@ -92,6 +94,9 @@ func (this *SSH) ConfigShellChannel(cols, rows uint32) (ssh.Channel, error) {
 
 	this.hasChannel = true
 	this.Channel = channel
+	this.IO.StdIn = channel
+	this.IO.StdOut = channel
+	this.IO.StdErr = channel
 
 	go func() {
 		for req := range requests {
@@ -103,7 +108,7 @@ func (this *SSH) ConfigShellChannel(cols, rows uint32) (ssh.Channel, error) {
 
 	//see https://github.com/golang/crypto/blob/master/ssh/example_test.go
 	modes := ssh.TerminalModes{ //todo configure
-		ssh.ECHO: 1,
+		ssh.ECHO:          1,
 		ssh.TTY_OP_ISPEED: 14400,
 		ssh.TTY_OP_OSPEED: 14400,
 	}
@@ -116,12 +121,12 @@ func (this *SSH) ConfigShellChannel(cols, rows uint32) (ssh.Channel, error) {
 		modeList = append(modeList, ssh.Marshal(&kv)...)
 	}
 	modeList = append(modeList, 0)
-	req := ptyRequestMsg{//todo configure
-		Term: "xterm",
-		Columns: cols,
-		Rows: rows,
-		Width: cols * 8,
-		Height: rows * 8,
+	req := ptyRequestMsg{ //todo configure
+		Term:     "xterm",
+		Columns:  cols,
+		Rows:     rows,
+		Width:    cols * 8,
+		Height:   rows * 8,
 		Modelist: string(modeList),
 	}
 
@@ -150,6 +155,7 @@ func (this *SSH) ConfigShellChannel(cols, rows uint32) (ssh.Channel, error) {
 	return channel, nil
 }
 
+// setup ssh shell session
 func (this *SSH) ConfigShellSession(cols, rows int) (*ssh.Session, error) {
 	session, err := this.Client.NewSession()
 	if err != nil {
@@ -165,7 +171,7 @@ func (this *SSH) ConfigShellSession(cols, rows int) (*ssh.Session, error) {
 	}
 
 	modes := ssh.TerminalModes{
-		ssh.ECHO:          1,  // disable echo
+		ssh.ECHO:          1,     // disable echo
 		ssh.TTY_OP_ISPEED: 14400, // input speed = 14.4kbaud
 		ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
 	}
@@ -183,19 +189,19 @@ func (this *SSH) ConfigShellSession(cols, rows int) (*ssh.Session, error) {
 }
 
 func (this *SSH) setSessionInputOutput() (error) {
-	stdin, err := this.Session.StdinPipe()
+	stdin, err := this.Session.StdinPipe() // in fact, it is channel.
 	if err != nil {
 		return err
 	}
 	this.IO.StdIn = stdin
 
-	stdout, err := this.Session.StdoutPipe()
+	stdout, err := this.Session.StdoutPipe() // in fact, it is channel.
 	if err != nil {
 		return err
 	}
 	this.IO.StdOut = stdout
 
-	stderr, _ := this.Session.StderrPipe()
+	stderr, _ := this.Session.StderrPipe() // in fact, it is channel.
 	if err != nil {
 		return err
 	}
