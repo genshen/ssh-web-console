@@ -20,10 +20,10 @@ func init() {
 	}
 
 	http.HandleFunc("/", controllers.Get)
-	http.HandleFunc("/signin", controllers.SignIn)
-	http.HandleFunc("/sftp/upload", controllers.AuthPreChecker(files.FileUpload{}))
-	http.HandleFunc("/sftp/ls", controllers.AuthPreChecker(files.List{}))
-	http.HandleFunc("/sftp/dl", controllers.AuthPreChecker(files.Download{}))
+	http.HandleFunc("/api/signin", controllers.SignIn)
+	http.HandleFunc("/api/sftp/upload", controllers.AuthPreChecker(files.FileUpload{}))
+	http.HandleFunc("/api/sftp/ls", controllers.AuthPreChecker(files.List{}))
+	http.HandleFunc("/api/sftp/dl", controllers.AuthPreChecker(files.Download{}))
 	http.HandleFunc("/ws/ssh", controllers.AuthPreChecker(controllers.SSHWebSocketHandle{}))
 	http.HandleFunc("/ws/sftp", controllers.AuthPreChecker(files.SftpEstablish{}))
 }
