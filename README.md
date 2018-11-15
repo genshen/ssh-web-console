@@ -1,6 +1,12 @@
 # ssh-web-console
 you can connect to your linux machine by ssh in your browser.
 
+##Quick start
+```bash
+$ docker build --build-arg GOMODULE=on -t genshen/ssh-web-console .
+$ docker run -v ${PWD}/conf:/home/web/conf --rm genshen/ssh-web-console
+```
+
 ## Build & Run
 make sure you go version is not less than 1.11
 
