@@ -6,7 +6,6 @@ import (
 	"log"
 	"mime/multipart"
 	"net/http"
-	"os"
 	"path"
 )
 
@@ -26,6 +25,7 @@ func (f FileUpload) ServeAfterAuthenticated(w http.ResponseWriter, r *http.Reque
 		//file, header, err := this.GetFile("file")
 		r.ParseMultipartForm(32 << 20)
 		file, header, err := r.FormFile("file")
+		relativePath := r.URL.Query().Get("path") // get path. default is ""
 		if err != nil {
 			log.Println("Error: getfile err ", err)
 			utils.Abort(w, "error", 503)
@@ -33,28 +33,25 @@ func (f FileUpload) ServeAfterAuthenticated(w http.ResponseWriter, r *http.Reque
 		}
 		defer file.Close()
 
-		if err := UploadFile(sftpClient, file, header); err != nil {
+		if err := UploadFile(relativePath, sftpClient, file, header); err != nil {
 			log.Println("Error: sftp error:", err)
 			utils.Abort(w, "message", 503)
 		} else {
-			w.Write([]byte("success"))
+			w.Write([]byte("success")) // todo write file name back.
 		}
 	}
 }
 
 // upload file to server via sftp.
-func UploadFile(client *sftp.Client, srcFile multipart.File, header *multipart.FileHeader) error {
+/**
+@desPath: relative path in remote server.
+ */
+func UploadFile(desPath string, client *sftp.Client, srcFile multipart.File, header *multipart.FileHeader) error {
 	var fullPath string
 	if wd, err := client.Getwd(); err == nil {
-		fullPath = path.Join(wd, "/tmp/")
+		fullPath = path.Join(wd, desPath)
 		if _, err := client.Stat(fullPath); err != nil {
-			if os.IsNotExist(err) {
-				if err := client.Mkdir(fullPath); err != nil {
-					return err
-				}
-			} else {
-				return err
-			}
+			return err // check path must exist
 		}
 	} else {
 		return err
