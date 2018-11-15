@@ -2,8 +2,8 @@ package controllers
 
 import (
 	"bufio"
-	"github.com/genshen/webConsole/src/models"
-	"github.com/genshen/webConsole/src/utils"
+	"github.com/genshen/ssh-web-console/src/models"
+	"github.com/genshen/ssh-web-console/src/utils"
 	"github.com/gorilla/websocket"
 	"io"
 	"log"

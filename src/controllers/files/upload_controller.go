@@ -1,13 +1,13 @@
 package files
 
 import (
-	"log"
-	"net/http"
-	"github.com/genshen/webConsole/src/utils"
-	"path"
-	"os"
-	"mime/multipart"
+	"github.com/genshen/ssh-web-console/src/utils"
 	"github.com/pkg/sftp"
+	"log"
+	"mime/multipart"
+	"net/http"
+	"os"
+	"path"
 )
 
 type FileUpload struct{}

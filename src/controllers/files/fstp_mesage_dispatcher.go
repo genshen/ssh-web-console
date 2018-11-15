@@ -2,8 +2,8 @@ package files
 
 import (
 	"github.com/pkg/sftp"
-	"path"
 	"os"
+	"path"
 )
 
 func DispatchSftpMessage(messageType int, message []byte, client *sftp.Client) error {

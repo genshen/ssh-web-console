@@ -4,8 +4,8 @@ import (
 	"os"
 	"log"
 	"golang.org/x/crypto/ssh"
-	"github.com/genshen/webConsole/src/utils"
-	"github.com/genshen/webConsole/src/routers"
+	"github.com/genshen/ssh-web-console/src/utils"
+	"github.com/genshen/ssh-web-console/src/routers"
 )
 
 func main() {

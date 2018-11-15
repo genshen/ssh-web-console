@@ -1,11 +1,11 @@
 package files
 
 import (
-	"log"
-	"path"
+	"github.com/genshen/ssh-web-console/src/utils"
 	"io"
+	"log"
 	"net/http"
-	"github.com/genshen/webConsole/src/utils"
+	"path"
 )
 
 type Download struct{}

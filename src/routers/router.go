@@ -3,9 +3,9 @@ package routers
 import (
 	"os"
 	"net/http"
-	"github.com/genshen/webConsole/src/controllers"
-	"github.com/genshen/webConsole/src/utils"
-	"github.com/genshen/webConsole/src/controllers/files"
+	"github.com/genshen/ssh-web-console/src/controllers"
+	"github.com/genshen/ssh-web-console/src/utils"
+	"github.com/genshen/ssh-web-console/src/controllers/files"
 )
 
 func init() {

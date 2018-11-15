@@ -1,10 +1,10 @@
 package files
 
 import (
-	"sync"
+	"github.com/genshen/ssh-web-console/src/utils"
 	"github.com/pkg/sftp"
-	"github.com/genshen/webConsole/src/utils"
 	"log"
+	"sync"
 )
 
 type SftpNode utils.Node // struct alias.

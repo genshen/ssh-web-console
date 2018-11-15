@@ -1,10 +1,10 @@
 package controllers
 
 import (
+	"github.com/genshen/ssh-web-console/src/utils"
 	"log"
-	"strings"
 	"net/http"
-	"github.com/genshen/webConsole/src/utils"
+	"strings"
 )
 
 type AfterAuthenticated interface {

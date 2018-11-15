@@ -1,6 +1,6 @@
 package models
 
-import "github.com/genshen/webConsole/src/utils"
+import "github.com/genshen/ssh-web-console/src/utils"
 
 const (
 	SIGN_IN_FORM_TYPE_ERROR_VALID    = iota

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
-	"github.com/genshen/webConsole/src/models"
+	"github.com/genshen/ssh-web-console/src/models"
 	"github.com/gorilla/websocket"
 	"io"
 )

@@ -1,10 +1,10 @@
 package controllers
 
 import (
-	"strconv"
+	"github.com/genshen/ssh-web-console/src/models"
+	"github.com/genshen/ssh-web-console/src/utils"
 	"net/http"
-	"github.com/genshen/webConsole/src/models"
-	"github.com/genshen/webConsole/src/utils"
+	"strconv"
 )
 
 const RunModeProd = "prod"
