@@ -1,5 +1,5 @@
 site:
-  appname: webConsole
+  appname: ssh-web-console
   listen_addr: :2222
   runmode: prod
   deploy_host: console.hpc.gensh.me

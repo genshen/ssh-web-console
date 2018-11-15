@@ -1,12 +1,12 @@
 package controllers
 
 import (
-	"io"
-	"encoding/json"
-	"encoding/base64"
-	"github.com/genshen/webConsole/src/models"
 	"bytes"
+	"encoding/base64"
+	"encoding/json"
+	"github.com/genshen/webConsole/src/models"
 	"github.com/gorilla/websocket"
+	"io"
 )
 
 func DispatchMessage(messageType int, message []byte, wc io.WriteCloser) error {

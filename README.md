@@ -1,22 +1,28 @@
-# sshWebConsole
+# ssh-web-console
 you can connect to your linux machine by ssh in your browser.
 
-## Dependency
+## Build & Run
+make sure you go version is not less than 1.11
+
+### build frontend
 ```bash
-go get -u github.com/kardianos/govendor  # ues [govendor](https://github.com/kardianos/govendor) to manager dependency
+$ cd /tmp;
+$ git clone https://github.com/genshen/web-console
+$ cd web-console
+$ yarn install
+$ yarn build
 ```
 
-## How to build
-1. clone the repository [webConsole](https://github.com/genshen/webConsole) to any directory (example:/home/foo/webConsole) you like,and follow its README to build the frontend code.
-2. copy the built files to present project,and edit configure file:
-   ```bash
-   cp /home/foo/webConsole/dist/static/  ./static/
-   cp /home/foo/webConsole/dist/index.html  ./views/index.html
-   cp conf/config.yaml.example conf/config.yaml
-   vi conf/config.yaml  # edit configure file
-   ```
-3. get Dependency(run ***govendor sync***) and then run:***go build main.go*** to build present project.
-4. run: ./main ,and than you can enjoy it in your browser.
+### build go
+```bash
+$ export GO111MODULE=on # for go 1.11.x
+$ go build
+$ cp /tmp/web-console/dist/static/  ./static/
+$ cp /tmp/web-console/dist/index.html  ./views/index.html
+```
+
+## Run
+run: `./ssh-web-console` ,and than you can enjoy it in your browser by visiting `http://localhost:2222`.
 ![](./Screenshots/shot1.png)
 
 ## Screenshots

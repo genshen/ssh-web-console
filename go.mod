@@ -1,4 +1,4 @@
-module github.com/genshen/webConsole
+module github.com/genshen/ssh-web-console
 
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
