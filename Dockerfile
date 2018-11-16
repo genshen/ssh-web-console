@@ -45,4 +45,5 @@ USER ${USER}
 
 VOLUME ["${HOME}/conf"]
 
+# fixme still using root user.
 CMD ["./ssh-web-console"]
