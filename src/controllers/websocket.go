@@ -90,7 +90,7 @@ func (c SSHWebSocketHandle) ServeAfterAuthenticated(w http.ResponseWriter, r *ht
 				log.Println("Error: error reading webSocket message:", err)
 				return
 			}
-			if err = DispatchMessage(msgType, p, wc); err != nil {
+			if err = DispatchMessage(sshEntity.Session, msgType, p, wc); err != nil {
 				log.Println("Error: error write data to ssh server:", err)
 				return
 			}
