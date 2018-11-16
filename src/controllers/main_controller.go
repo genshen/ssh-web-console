@@ -7,17 +7,6 @@ import (
 	"strconv"
 )
 
-const RunModeProd = "prod"
-
-func Get(w http.ResponseWriter, r *http.Request) {
-	// to visit in  vpn mode,please add "vpn" param, e.g. http://console.hpc.gensh.me?vpn=on
-	if utils.Config.Site.RunMode == RunModeProd && utils.Config.VPN.Enable && r.URL.Query().Get("vpn") != "" {
-		utils.ServeHTTPByName(w, r, "index_vpn.html")
-	} else {
-		utils.ServeHTTPByName(w, r, "index.html")
-	}
-}
-
 func SignIn(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "Invalid request method.", 405)
