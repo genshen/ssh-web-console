@@ -1,22 +1,11 @@
 package controllers
 
 import (
-	"strconv"
+	"github.com/genshen/ssh-web-console/src/models"
+	"github.com/genshen/ssh-web-console/src/utils"
 	"net/http"
-	"github.com/genshen/webConsole/src/models"
-	"github.com/genshen/webConsole/src/utils"
+	"strconv"
 )
-
-const RunModeProd = "prod"
-
-func Get(w http.ResponseWriter, r *http.Request) {
-	// to visit in  vpn mode,please add "vpn" param, e.g. http://console.hpc.gensh.me?vpn=on
-	if utils.Config.Site.RunMode == RunModeProd && utils.Config.VPN.Enable && r.URL.Query().Get("vpn") != "" {
-		utils.ServeHTTPByName(w, r, "index_vpn.html")
-	} else {
-		utils.ServeHTTPByName(w, r, "index.html")
-	}
-}
 
 func SignIn(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
@@ -40,17 +29,22 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if userinfo.Host != "" && userinfo.Username != "" {
-			//try to login ssh account
-			ssh := utils.SSH{}
-			ssh.Node.Host = userinfo.Host
-			ssh.Node.Port = userinfo.Port
-			err := ssh.Connect(userinfo.Username, userinfo.Password)
+			//try to login session account
+			session := utils.SSHShellSession{}
+			session.Node.Host = userinfo.Host
+			session.Node.Port = userinfo.Port
+			err := session.Connect(userinfo.Username, userinfo.Password)
 			if err != nil {
 				errUnmarshal = models.JsonResponse{HasError: true, Message: models.SIGN_IN_FORM_TYPE_ERROR_PASSWORD}
 			} else {
-				defer ssh.Close()
+				defer session.Close()
 				// create session
-				if session, err := ssh.Client.NewSession(); err == nil {
+				client, err := session.GetClient()
+				if err != nil {
+					// bad connection.
+					return
+				}
+				if session, err := client.NewSession(); err == nil {
 					if err := session.Run("whoami"); err == nil {
 						if token, expireUnix, err := utils.JwtNewToken(userinfo.Connection, utils.Config.Jwt.Issuer); err == nil {
 							errUnmarshal = models.JsonResponse{HasError: false, Addition: token}

@@ -1,46 +1,44 @@
 package controllers
 
 import (
-	"io"
-	"encoding/json"
 	"encoding/base64"
-	"github.com/genshen/webConsole/src/models"
-	"bytes"
-	"github.com/gorilla/websocket"
+	"encoding/json"
+	"github.com/genshen/ssh-web-console/src/models"
+	"golang.org/x/crypto/ssh"
+	"io"
 )
 
-func DispatchMessage(messageType int, message []byte, wc io.WriteCloser) error {
-	socketMsg := models.SSHWebSocketMessage{}
-	if err := json.Unmarshal(message, &socketMsg); err != nil {
-		return err
+func DispatchMessage(sshSession *ssh.Session, messageType int, wsData []byte, wc io.WriteCloser) error {
+	var socketData json.RawMessage
+	socketStream := models.SSHWebSocketMessage{
+		Data: &socketData,
 	}
 
-	switch socketMsg.Type {
+	if err := json.Unmarshal(wsData, &socketStream); err != nil {
+		return nil // skip error
+	}
+
+	switch socketStream.Type {
 	case models.SSHWebSocketMessageTypeHeartbeat:
 		return nil
+	case models.SSHWebSocketMessageTypeResize:
+		var resize models.WindowResize
+		if err := json.Unmarshal(socketData, &resize); err != nil {
+			return nil // skip error
+		}
+		sshSession.WindowChange(resize.Rows, resize.Cols)
 	case models.SSHWebSocketMessageTypeTerminal:
-		if decodeBytes, err := base64.StdEncoding.DecodeString(socketMsg.DataBase64); err != nil { // todo ignore error
-			return err
+		var message models.TerminalMessage
+		if err := json.Unmarshal(socketData, &message); err != nil {
+			return nil
+		}
+		if decodeBytes, err := base64.StdEncoding.DecodeString(message.DataBase64); err != nil { // todo ignore error
+			return nil // skip error
 		} else {
 			if _, err := wc.Write(decodeBytes); err != nil {
 				return err
 			}
 		}
-	}
-	return nil
-}
-
-type WebSocketWriterBuffer struct {
-	bytes.Buffer
-}
-
-func (b *WebSocketWriterBuffer) Flush(messageType int, ws *websocket.Conn) error {
-	if b.Len() != 0 {
-		err := ws.WriteMessage(messageType, []byte(b.Bytes()))
-		if err != nil {
-			return err
-		}
-		b.Reset()
 	}
 	return nil
 }

@@ -1,10 +1,10 @@
 package utils
 
 import (
-	"os"
-	"log"
-	"io/ioutil"
 	"gopkg.in/yaml.v2"
+	"io/ioutil"
+	"log"
+	"os"
 )
 
 const (
@@ -17,9 +17,11 @@ var Config struct {
 		RunMode      string `yaml:"runmode"`
 		DeployHost   string `yaml:"deploy_host"`
 		ListenAddr   string `yaml:"listen_addr"`
-		StaticPrefix string `yaml:"static_prefix"`
-		StaticDir    string `yaml:"static_dir"`
-		ViewsDir     string `yaml:"views_dir"`
+		StaticPrefix string `yaml:"static_prefix"` // http prefix
+		// hard static is that generate the files content into go code, and compile into go binary.
+		HardStaticDir string `yaml:"hard_static_dir"` // filesystem dir
+		// soft static is reading static files in this dir into memory.
+		SoftStaticDir string `yaml:"soft_static_dir"`
 	} `yaml:"site"`
 	VPN struct {
 		Enable bool `yaml:"enable"`

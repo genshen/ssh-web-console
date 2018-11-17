@@ -1,15 +1,15 @@
 site:
-  appname: webConsole
+  appname: ssh-web-console
   listen_addr: :2222
   runmode: prod
   deploy_host: console.hpc.gensh.me
-  static_prefix: /static/
-  static_dir: static/
-  views_dir: views/
+  static_prefix: /
+  hard_static_dir: ./dist/
+  soft_static_dir: views/
 vpn_juniper:  # https://www.juniper.net
   enable: true
 ssh:
-#  io_mode: 1  # the mode reading data from ssh server: channel mode (0) OR session mode (1)
+  #  io_mode: 1  # the mode reading data from ssh server: channel mode (0) OR session mode (1)
   buffer_checker_cycle_time: 60 # check buffer every { buffer_checker_cycle_time } ms. if buffer is not empty , then send buffered data back to client(browser/webSocket)
 jwt:
   jwt_secret: secret.console.hpc.gensh.me

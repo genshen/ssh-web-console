@@ -9,7 +9,7 @@ var SessionStorage SessionManager
 
 var mutex = new(sync.RWMutex)
 
-func initSessionUtils() {
+func init() {
 	SessionStorage.new()
 }
 

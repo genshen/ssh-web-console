@@ -1,22 +1,37 @@
-# sshWebConsole
+# ssh-web-console
 you can connect to your linux machine by ssh in your browser.
 
-## Dependency
+##Quick start
 ```bash
-go get -u github.com/kardianos/govendor  # ues [govendor](https://github.com/kardianos/govendor) to manager dependency
+$ docker build --build-arg GOMODULE=on -t genshen/ssh-web-console .
+$ docker run -v ${PWD}/conf:/home/web/conf --rm genshen/ssh-web-console
 ```
 
-## How to build
-1. clone the repository [webConsole](https://github.com/genshen/webConsole) to any directory (example:/home/foo/webConsole) you like,and follow its README to build the frontend code.
-2. copy the built files to present project,and edit configure file:
-   ```bash
-   cp /home/foo/webConsole/dist/static/  ./static/
-   cp /home/foo/webConsole/dist/index.html  ./views/index.html
-   cp conf/config.yaml.example conf/config.yaml
-   vi conf/config.yaml  # edit configure file
-   ```
-3. get Dependency(run ***govendor sync***) and then run:***go build main.go*** to build present project.
-4. run: ./main ,and than you can enjoy it in your browser.
+## Build & Run
+make sure you go version is not less than 1.11
+
+### build frontend
+```bash
+$ cd /tmp;
+$ git clone https://github.com/genshen/webConsole web-console
+$ cd web-console
+$ yarn install
+$ yarn build
+```
+
+### build go
+```bash
+$ go get github.com/rakyll/statik
+$ cp -r /tmp/web-console/dist  ./dist
+$ statik dist  # use statik tool to convert files in 'dist' dir to go code, and compile to binary.
+$ export GO111MODULE=on # for go 1.11.x
+$ go build
+```
+
+## Run
+run: `./ssh-web-console` (you should check directory specified by `soft_static_dir` in conf/config.yaml exists), 
+and than you can enjoy it in your browser by visiting `http://localhost:2222`.
+
 ![](./Screenshots/shot1.png)
 
 ## Screenshots

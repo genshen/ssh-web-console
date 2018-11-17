@@ -1,14 +1,14 @@
 package files
 
 import (
-	"net/http"
-	"github.com/genshen/webConsole/src/utils"
-	"github.com/genshen/webConsole/src/models"
-	"log"
+	"github.com/genshen/ssh-web-console/src/models"
+	"github.com/genshen/ssh-web-console/src/utils"
 	"github.com/gorilla/websocket"
-	"time"
 	"github.com/oklog/ulid"
+	"log"
 	"math/rand"
+	"net/http"
+	"time"
 )
 
 type SftpEstablish struct{}

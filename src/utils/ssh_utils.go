@@ -14,27 +14,31 @@ const (
 	SSH_IO_MODE_SESSION = 1
 )
 
-type Node struct {
-	Host string // host, e.g: ssh.example.com
-	Port int    //port,default value is 22
+type SSHConnInterface interface {
+	// close ssh connection
+	Close()
+	// connect using username and password
+	Connect(username, password string) error
+	// config connection after connected
+	Config(cols, rows uint32) error
 }
 
-type SSH struct {
-	Node Node
-	IO   struct {
-		StdIn  io.WriteCloser
-		StdOut io.Reader
-		StdErr io.Reader
+type Node struct {
+	Host   string // host, e.g: ssh.example.com
+	Port   int    //port,default value is 22
+	client *ssh.Client
+}
+
+func (node *Node) GetClient() (*ssh.Client, error) {
+	if node.client == nil {
+		return nil, errors.New("client is not set")
 	}
-	Client     *ssh.Client
-	Channel    ssh.Channel // used only in channel mode.
-	hasChannel bool // can be true only in channel mode.
-	Session    *ssh.Session // used only in session mode.
+	return node.client, nil
 }
 
 //see: http://www.nljb.net/default/Go-SSH-%E4%BD%BF%E7%94%A8/
-// establish a ssh connection. if success return nil, than can operate ssh connection via pointer SSH.Client in struct SSH.
-func (s *SSH) Connect(username, password string) error {
+// establish a ssh connection. if success return nil, than can operate ssh connection via pointer SSH.client in struct SSH.
+func (node *Node) Connect(username, password string) error {
 	//var hostKey ssh.PublicKey
 
 	// An SSH client is represented with a ClientConn.
@@ -49,30 +53,89 @@ func (s *SSH) Connect(username, password string) error {
 		},
 		//HostKeyCallback: ssh.FixedHostKey(hostKey),
 		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
-			return nil;
+			return nil
 		},
 	}
 
-	client, err := ssh.Dial("tcp", s.Node.Host+":"+strconv.Itoa(s.Node.Port), config)
+	client, err := ssh.Dial("tcp", node.Host+":"+strconv.Itoa(node.Port), config)
 	if err != nil {
 		return err
 	}
-	s.Client = client
+	node.client = client
 	return nil
 }
 
-func (s *SSH) Close() {
-	if s.hasChannel {
-		s.Channel.Close()
+// connect to ssh server using ssh session.
+type SSHShellSession struct {
+	Node
+	// calling Write() to write data to ssh server
+	StdinPipe io.WriteCloser
+	// Write() be called to receive data from ssh server
+	WriterPipe io.Writer
+	Session    *ssh.Session
+}
+
+// setup ssh shell session
+// set Session and StdinPipe here,
+// and the Session.Stdout and Session.Sdterr are also set.
+func (s *SSHShellSession) Config(cols, rows uint32) error {
+	session, err := s.client.NewSession()
+	if err != nil {
+		return err
+	}
+	s.Session = session
+
+	// we set stdin, then we can write data to ssh server via this stdin.
+	// but, as for reading data from ssh server, we can set Session.Stdout and Session.Stderr
+	// to receive data from ssh server, and write back to somewhere.
+	if stdin, err := s.Session.StdinPipe(); err != nil {
+		log.Fatal("failed to set IO stdin: ", err)
+		return err
+	} else {
+		// in fact, stdin it is channel.
+		s.StdinPipe = stdin
 	}
 
+	// set writer, such the we can receive ssh server's data and write the data to somewhere specified by WriterPipe.
+	if s.WriterPipe == nil {
+		return errors.New("WriterPipe is nil")
+	}
+	session.Stdout = s.WriterPipe
+	session.Stderr = s.WriterPipe
+
+	modes := ssh.TerminalModes{
+		ssh.ECHO:          1,     // disable echo
+		ssh.TTY_OP_ISPEED: 14400, // input speed = 14.4kbaud
+		ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
+	}
+	// Request pseudo terminal
+	if err := session.RequestPty("xterm", int(rows), int(cols), modes); err != nil {
+		log.Fatal("request for pseudo terminal failed: ", err)
+		return err
+	}
+	// Start remote shell
+	if err := session.Shell(); err != nil {
+		log.Fatal("failed to start shell: ", err)
+		return err
+	}
+	return nil
+}
+
+func (s *SSHShellSession) Close() {
 	if s.Session != nil {
 		s.Session.Close()
 	}
 
-	if s.Client != nil {
-		s.Client.Close()
+	if s.client != nil {
+		s.client.Close()
 	}
+}
+
+// deprecated, use session SSHShellSession instead
+// connect to ssh server using channel.
+type SSHShellChannel struct {
+	Node
+	Channel ssh.Channel
 }
 
 type ptyRequestMsg struct {
@@ -84,19 +147,12 @@ type ptyRequestMsg struct {
 	Modelist string
 }
 
-// deprecated.
-// use session ConfigShellSession instead.
-func (this *SSH) ConfigShellChannel(cols, rows uint32) (ssh.Channel, error) {
-	channel, requests, err := this.Client.Conn.OpenChannel("session", nil)
+func (ch *SSHShellChannel) Config(cols, rows uint32) error {
+	channel, requests, err := ch.client.Conn.OpenChannel("session", nil)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	this.hasChannel = true
-	this.Channel = channel
-	this.IO.StdIn = channel
-	this.IO.StdOut = channel
-	this.IO.StdErr = channel
+	ch.Channel = channel
 
 	go func() {
 		for req := range requests {
@@ -132,7 +188,7 @@ func (this *SSH) ConfigShellChannel(cols, rows uint32) (ssh.Channel, error) {
 
 	ok, err := channel.SendRequest("pty-req", true, ssh.Marshal(&req))
 	if !ok || err != nil {
-		return nil, errors.New("error sending pty-request" +
+		return errors.New("error sending pty-request" +
 			func() (string) {
 				if err == nil {
 					return ""
@@ -143,7 +199,7 @@ func (this *SSH) ConfigShellChannel(cols, rows uint32) (ssh.Channel, error) {
 
 	ok, err = channel.SendRequest("shell", true, nil)
 	if !ok || err != nil {
-		return nil, errors.New("error sending shell-request" +
+		return errors.New("error sending shell-request" +
 			func() (string) {
 				if err == nil {
 					return ""
@@ -151,60 +207,5 @@ func (this *SSH) ConfigShellChannel(cols, rows uint32) (ssh.Channel, error) {
 				return err.Error()
 			}())
 	}
-
-	return channel, nil
-}
-
-// setup ssh shell session
-func (this *SSH) ConfigShellSession(cols, rows int) (*ssh.Session, error) {
-	session, err := this.Client.NewSession()
-	if err != nil {
-		return nil, err
-	}
-
-	this.Session = session
-
-	err = this.setSessionInputOutput()
-	if err != nil {
-		log.Fatal("failed to set IO: ", err)
-		return nil, err
-	}
-
-	modes := ssh.TerminalModes{
-		ssh.ECHO:          1,     // disable echo
-		ssh.TTY_OP_ISPEED: 14400, // input speed = 14.4kbaud
-		ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
-	}
-	// Request pseudo terminal
-	if err := session.RequestPty("xterm", rows, cols, modes); err != nil {
-		log.Fatal("request for pseudo terminal failed: ", err)
-		return nil, err
-	}
-	// Start remote shell
-	if err := session.Shell(); err != nil {
-		log.Fatal("failed to start shell: ", err)
-		return nil, err
-	}
-	return session, nil
-}
-
-func (this *SSH) setSessionInputOutput() (error) {
-	stdin, err := this.Session.StdinPipe() // in fact, it is channel.
-	if err != nil {
-		return err
-	}
-	this.IO.StdIn = stdin
-
-	stdout, err := this.Session.StdoutPipe() // in fact, it is channel.
-	if err != nil {
-		return err
-	}
-	this.IO.StdOut = stdout
-
-	stderr, _ := this.Session.StderrPipe() // in fact, it is channel.
-	if err != nil {
-		return err
-	}
-	this.IO.StdErr = stderr
 	return nil
 }

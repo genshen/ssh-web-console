@@ -1,29 +1,50 @@
 package routers
 
 import (
-	"os"
+	"github.com/genshen/ssh-web-console/src/controllers"
+	"github.com/genshen/ssh-web-console/src/controllers/files"
+	"github.com/genshen/ssh-web-console/src/utils"
+	_ "github.com/genshen/ssh-web-console/statik"
+	"github.com/rakyll/statik/fs"
+	"log"
 	"net/http"
-	"github.com/genshen/webConsole/src/controllers"
-	"github.com/genshen/webConsole/src/utils"
-	"github.com/genshen/webConsole/src/controllers/files"
+	"os"
+)
+
+const (
+	RunModeDev = "dev"
+	RunModeProd = "prod"
 )
 
 func init() {
-	if utils.Config.Site.RunMode == "dev" {
+	// static
+	if utils.Config.Site.RunMode == RunModeDev {
 		http.HandleFunc("/static/", func(writer http.ResponseWriter, req *http.Request) {
 			http.Redirect(writer, req, "localhost:8080"+req.URL.Path, http.StatusMovedPermanently)
 		})
 	} else {
-		fs := justFilesFilesystem{http.Dir(utils.Config.Site.StaticDir)}
-		http.Handle(utils.Config.Site.StaticPrefix, http.StripPrefix(utils.Config.Site.StaticPrefix, http.FileServer(fs)))
-		//http.Handle("/static/", http.FileServer(fs))
+		//fs := justFilesFilesystem{http.Dir(utils.Config.Site.HardStaticDir)}
+		//http.Handle(utils.Config.Site.StaticPrefix, http.StripPrefix(utils.Config.Site.StaticPrefix, http.FileServer(fs)))
+		statikFS, err := fs.New()
+		if err != nil {
+			log.Fatal(err)
+		}
+		http.Handle(utils.Config.Site.StaticPrefix, http.StripPrefix(utils.Config.Site.StaticPrefix, http.FileServer(statikFS)))
 	}
 
-	http.HandleFunc("/", controllers.Get)
-	http.HandleFunc("/signin", controllers.SignIn)
-	http.HandleFunc("/sftp/upload", controllers.AuthPreChecker(files.FileUpload{}))
-	http.HandleFunc("/sftp/ls", controllers.AuthPreChecker(files.List{}))
-	http.HandleFunc("/sftp/dl", controllers.AuthPreChecker(files.Download{}))
+	// serve vpn
+	if utils.Config.Site.RunMode == RunModeProd && utils.Config.VPN.Enable  {
+		// "/a" is relative to the root dir; but "/a/" is relative to dir 'a'.
+		http.HandleFunc("/vpn", func(w http.ResponseWriter, r *http.Request) {
+			utils.ServeHTTPByName(w, r, "index_vpn.html") // server soft static files.
+		})
+	}
+
+	// api
+	http.HandleFunc("/api/signin", controllers.SignIn)
+	http.HandleFunc("/api/sftp/upload", controllers.AuthPreChecker(files.FileUpload{}))
+	http.HandleFunc("/api/sftp/ls", controllers.AuthPreChecker(files.List{}))
+	http.HandleFunc("/api/sftp/dl", controllers.AuthPreChecker(files.Download{}))
 	http.HandleFunc("/ws/ssh", controllers.AuthPreChecker(controllers.SSHWebSocketHandle{}))
 	http.HandleFunc("/ws/sftp", controllers.AuthPreChecker(files.SftpEstablish{}))
 }

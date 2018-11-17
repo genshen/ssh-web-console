@@ -1,8 +1,8 @@
 package files
 
 import (
+	"github.com/genshen/ssh-web-console/src/utils"
 	"net/http"
-	"github.com/genshen/webConsole/src/utils"
 )
 
 type FileStat struct{}
