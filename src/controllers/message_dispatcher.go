@@ -6,7 +6,6 @@ import (
 	"github.com/genshen/ssh-web-console/src/models"
 	"golang.org/x/crypto/ssh"
 	"io"
-	"log"
 )
 
 func DispatchMessage(sshSession *ssh.Session, messageType int, wsData []byte, wc io.WriteCloser) error {
@@ -27,7 +26,6 @@ func DispatchMessage(sshSession *ssh.Session, messageType int, wsData []byte, wc
 		if err := json.Unmarshal(socketData, &resize); err != nil {
 			return nil // skip error
 		}
-		log.Println(resize)
 		sshSession.WindowChange(resize.Rows, resize.Cols)
 	case models.SSHWebSocketMessageTypeTerminal:
 		var message models.TerminalMessage
