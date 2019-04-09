@@ -23,9 +23,6 @@ var Config struct {
 		// soft static is reading static files in this dir into memory.
 		SoftStaticDir string `yaml:"soft_static_dir"`
 	} `yaml:"site"`
-	VPN struct {
-		Enable bool `yaml:"enable"`
-	} `yaml:"vpn_juniper"`
 	SSH struct {
 		BufferCheckerCycleTime int `yaml:"buffer_checker_cycle_time"`
 	} `yaml:"ssh"`

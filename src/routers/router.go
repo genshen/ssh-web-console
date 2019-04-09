@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	RunModeDev = "dev"
+	RunModeDev  = "dev"
 	RunModeProd = "prod"
 )
 
@@ -30,14 +30,6 @@ func init() {
 			log.Fatal(err)
 		}
 		http.Handle(utils.Config.Site.StaticPrefix, http.StripPrefix(utils.Config.Site.StaticPrefix, http.FileServer(statikFS)))
-	}
-
-	// serve vpn
-	if utils.Config.Site.RunMode == RunModeProd && utils.Config.VPN.Enable  {
-		// "/a" is relative to the root dir; but "/a/" is relative to dir 'a'.
-		http.HandleFunc("/vpn", func(w http.ResponseWriter, r *http.Request) {
-			utils.ServeHTTPByName(w, r, "index_vpn.html") // server soft static files.
-		})
 	}
 
 	// api
