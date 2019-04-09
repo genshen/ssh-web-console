@@ -37,14 +37,14 @@ var staticFiles = make(map[string]*staticFilesFile)
 var NotFound = http.NotFound
 
 // read all files in views directory and map to "staticFiles"
-func init() {
-	files := processDir(Config.Site.SoftStaticDir, "")
+func MemStatic(staticDir string) {
+	files := processDir(staticDir, "")
 	for _, file := range files {
 		var b bytes.Buffer
 		var b2 bytes.Buffer
 		hash := sha256.New()
 
-		f, err := os.Open(filepath.Join(Config.Site.SoftStaticDir,file))
+		f, err := os.Open(filepath.Join(staticDir, file))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -117,47 +117,55 @@ func processDir(prefix, dir string) (fileSlice []string) {
 // ServeHTTP serves a request, attempting to reply with an embedded file.
 func ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	filename := strings.TrimPrefix(req.URL.Path, "/")
-	ServeHTTPByName(rw, req, filename)
+	if f, ok := staticFiles[filename]; ok {
+		serveHTTPByName(rw, req, f)
+		return
+	}
+	// try index.html
+	if strings.HasSuffix(req.URL.Path, "/") {
+		filename += "index.html"
+		if f, ok := staticFiles[filename]; ok {
+			serveHTTPByName(rw, req, f)
+			return
+		}
+	}
+	// return 404 if both of them not exists
+	NotFound(rw, req)
 }
 
 // ServeHTTPByName serves a request by the key(param filename) in map.
-func ServeHTTPByName(rw http.ResponseWriter, req *http.Request, filename string) {
-	if f, ok := staticFiles[filename]; !ok {
-		NotFound(rw, req)
-		return
-	} else {
-		header := rw.Header()
-		if f.hash != "" {
-			if hash := req.Header.Get("If-None-Match"); hash == f.hash {
-				rw.WriteHeader(http.StatusNotModified)
-				return
-			}
-			header.Set("ETag", f.hash)
+func serveHTTPByName(rw http.ResponseWriter, req *http.Request, f *staticFilesFile) {
+	header := rw.Header()
+	if f.hash != "" {
+		if hash := req.Header.Get("If-None-Match"); hash == f.hash {
+			rw.WriteHeader(http.StatusNotModified)
+			return
 		}
-		if !f.mtime.IsZero() {
-			if t, err := time.Parse(http.TimeFormat, req.Header.Get("If-Modified-Since")); err == nil && f.mtime.Before(t.Add(1*time.Second)) {
-				rw.WriteHeader(http.StatusNotModified)
-				return
-			}
-			header.Set("Last-Modified", f.mtime.UTC().Format(http.TimeFormat))
+		header.Set("ETag", f.hash)
+	}
+	if !f.mtime.IsZero() {
+		if t, err := time.Parse(http.TimeFormat, req.Header.Get("If-Modified-Since")); err == nil && f.mtime.Before(t.Add(1*time.Second)) {
+			rw.WriteHeader(http.StatusNotModified)
+			return
 		}
-		header.Set("Content-Type", f.mime)
+		header.Set("Last-Modified", f.mtime.UTC().Format(http.TimeFormat))
+	}
+	header.Set("Content-Type", f.mime)
 
-		// Check if the asset is compressed in the binary
-		if f.size == 0 { // not compressed
+	// Check if the asset is compressed in the binary
+	if f.size == 0 { // not compressed
+		header.Set("Content-Length", strconv.Itoa(len(f.data)))
+		rw.Write(f.data)
+	} else {
+		if header.Get("Content-Encoding") == "" && strings.Contains(req.Header.Get("Accept-Encoding"), "gzip") {
+			header.Set("Content-Encoding", "gzip")
 			header.Set("Content-Length", strconv.Itoa(len(f.data)))
 			rw.Write(f.data)
 		} else {
-			if header.Get("Content-Encoding") == "" && strings.Contains(req.Header.Get("Accept-Encoding"), "gzip") {
-				header.Set("Content-Encoding", "gzip")
-				header.Set("Content-Length", strconv.Itoa(len(f.data)))
-				rw.Write(f.data)
-			} else {
-				header.Set("Content-Length", strconv.Itoa(int(f.size)))
-				reader, _ := gzip.NewReader(bytes.NewReader(f.data))
-				io.Copy(rw, reader)
-				reader.Close()
-			}
+			header.Set("Content-Length", strconv.Itoa(int(f.size)))
+			reader, _ := gzip.NewReader(bytes.NewReader(f.data))
+			io.Copy(rw, reader)
+			reader.Close()
 		}
 	}
 }
@@ -198,4 +206,3 @@ func Hash(file string) (s string) {
 	}
 	return
 }
-
