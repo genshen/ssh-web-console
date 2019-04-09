@@ -41,10 +41,6 @@ func init() {
 	http.HandleFunc("/ws/sftp", controllers.AuthPreChecker(files.SftpEstablish{}))
 }
 
-func Run() {
-	http.ListenAndServe(utils.Config.Site.ListenAddr, nil)
-}
-
 /*
 * disable directory index, code from https://groups.google.com/forum/#!topic/golang-nuts/bStLPdIVM6w
  */

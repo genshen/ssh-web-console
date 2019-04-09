@@ -3,12 +3,7 @@ package utils
 import (
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
-	"log"
 	"os"
-)
-
-const (
-	KEY_SSH_IO_MODE = "ssh_io_mode"
 )
 
 var Config struct {
@@ -34,19 +29,20 @@ var Config struct {
 	} `yaml:"jwt"`
 }
 
-func init() {
-	f, err := os.Open("conf/config.yaml")
+func InitConfig(filepath string) error {
+	f, err := os.Open(filepath)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer f.Close()
 	content, err := ioutil.ReadAll(f)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	err = yaml.Unmarshal(content, &Config)
 	if err != nil {
-		log.Fatalf("error: %v", err)
+		return err
 	}
+	return nil
 }
