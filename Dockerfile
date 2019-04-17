@@ -15,7 +15,7 @@ RUN apk add --no-cache git \
     && yarn build
 
 
-FROM golang:1.12.3-alpine AS builder
+FROM golang:1.12.4-alpine AS builder
 
 # set to 'on' if using go module
 ENV GO111MODULE=on
@@ -34,17 +34,16 @@ RUN cd ./src/github.com/genshen/ssh-web-console/ \
 
 ## copy binary
 FROM alpine:latest
-ARG USRR="web"
+
 ARG HOME="/home/web"
 
-RUN adduser -D ${USRR}
+RUN adduser -D web -h ${HOME}
 
 COPY --from=builder --chown=web /go/bin/ssh-web-console ${HOME}/ssh-web-console
 
 WORKDIR ${HOME}
-USER ${USER}
+USER web
 
 VOLUME ["${HOME}/conf", "${HOME}/views"]
 
-# fixme still using root user.
 CMD ["./ssh-web-console"]
