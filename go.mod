@@ -10,6 +10,6 @@ require (
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/pkg/sftp v1.10.0
 	github.com/rakyll/statik v0.1.6
-	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
+	golang.org/x/crypto v0.0.0-20190820162420-60c769a6c586
 	gopkg.in/yaml.v2 v2.2.2
 )
