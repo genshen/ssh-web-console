@@ -15,10 +15,9 @@ RUN apk add --no-cache git \
     && yarn build
 
 
-FROM golang:1.12.4-alpine AS builder
+FROM golang:1.13.0-alpine AS builder
 
 # set to 'on' if using go module
-ENV GO111MODULE=on
 ARG STATIC_DIR=dist
 
 RUN apk add --no-cache git \
