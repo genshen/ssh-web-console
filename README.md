@@ -14,22 +14,26 @@ Open your browser, visit `http://localhost:2222`. Enjoy it!
 ## Build & Run
 make sure you go version is not less than 1.11
 
+### clone
+```bash
+git clone --recurse-submodules https://github.com/genshen/ssh-web-console.git
+cd ssh-web-console
+```
+
 ### build frontend
 ```bash
-$ cd /tmp
-$ git clone https://github.com/genshen/webConsole web-console
-$ cd web-console
-$ yarn install
-$ yarn build
+cd web
+yarn install
+yarn build
+cd ../
 ```
 
 ### build go
 ```bash
-$ go get github.com/rakyll/statik
-$ cp -r /tmp/web-console/dist  ./dist
-$ statik --src=dist  # use statik tool to convert files in 'dist' dir to go code, and compile into binary.
-$ export GO111MODULE=on # for go 1.11.x
-$ go build
+go get github.com/rakyll/statik
+statik --src=web/dist  # use statik tool to convert files in 'web/dist' dir to go code, and compile into binary.
+export GO111MODULE=on # for go 1.11.x
+go build
 ```
 
 ## Run
