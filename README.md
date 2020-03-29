@@ -1,6 +1,10 @@
 # ssh-web-console
 you can connect to your linux machine by ssh in your browser.
 
+![Docker Image Size (latest by date)](https://img.shields.io/docker/image-size/genshen/ssh-web-console?logo=docker&sort=date)
+![Docker Image Version (latest semver)](https://img.shields.io/docker/v/genshen/ssh-web-console?sort=semver&logo=docker)
+![Docker Pulls](https://img.shields.io/docker/pulls/genshen/ssh-web-console?logo=docker)
+
 ## Quick start
 ```bash
 $ docker pull genshen/ssh-web-console:latest
