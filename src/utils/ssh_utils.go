@@ -18,7 +18,7 @@ type SSHConnInterface interface {
 	// close ssh connection
 	Close()
 	// connect using username and password
-	Connect(username, password string) error
+	Connect(username string, auth ssh.AuthMethod) error
 	// config connection after connected and may also create a ssh session.
 	Config(cols, rows uint32) (*ssh.Session, error)
 }
@@ -38,7 +38,7 @@ func (node *Node) GetClient() (*ssh.Client, error) {
 
 //see: http://www.nljb.net/default/Go-SSH-%E4%BD%BF%E7%94%A8/
 // establish a ssh connection. if success return nil, than can operate ssh connection via pointer Node.client in struct Node.
-func (node *Node) Connect(username, password string) error {
+func (node *Node) Connect(username string, auth ssh.AuthMethod) error {
 	//var hostKey ssh.PublicKey
 
 	// An SSH client is represented with a ClientConn.
@@ -49,7 +49,7 @@ func (node *Node) Connect(username, password string) error {
 	config := &ssh.ClientConfig{
 		User: username,
 		Auth: []ssh.AuthMethod{
-			ssh.Password(password),
+			auth,
 		},
 		//HostKeyCallback: ssh.FixedHostKey(hostKey),
 		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {

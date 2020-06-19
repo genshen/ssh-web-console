@@ -3,6 +3,7 @@ package files
 import (
 	"github.com/genshen/ssh-web-console/src/utils"
 	"github.com/pkg/sftp"
+	"golang.org/x/crypto/ssh"
 	"log"
 	"sync"
 )
@@ -37,7 +38,7 @@ func NewSftpEntity(user SftpNode, username, password string) (SftpEntity, error)
 		},
 	}
 	// init ssh connection.
-	err := sshEntity.Connect(username, password)
+	err := sshEntity.Connect(username, ssh.Password(password))
 	if err != nil {
 		return SftpEntity{}, err
 	}

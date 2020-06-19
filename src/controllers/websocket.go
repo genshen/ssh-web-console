@@ -1,9 +1,11 @@
 package controllers
 
 import (
+	"fmt"
 	"github.com/genshen/ssh-web-console/src/models"
 	"github.com/genshen/ssh-web-console/src/utils"
 	"github.com/gorilla/websocket"
+	"golang.org/x/crypto/ssh"
 	"io"
 	"log"
 	"net/http"
@@ -29,16 +31,12 @@ func (c *SSHWebSocketHandle) ShouldClearSessionAfterExec() bool {
 }
 
 // handle webSocket connection.
-// first,we establish a ssh connection to ssh server when a webSocket comes;
-// then we deliver ssh data via ssh connection between browser and ssh server.
-// That is, read webSocket data from browser (e.g. 'ls' command) and send data to ssh server via ssh connection;
-// the other hand, read returned ssh data from ssh server and write back to browser via webSocket API.
 func (c *SSHWebSocketHandle) ServeAfterAuthenticated(w http.ResponseWriter, r *http.Request, claims *utils.Claims, session utils.Session) {
 	// init webSocket connection
 	ws, err := c.upgrader.Upgrade(w, r, nil)
 	if _, ok := err.(websocket.HandshakeError); ok {
 		utils.Abort(w, "Not a websocket handshake", 400)
-		log.Println("Error: Not a websocket handshake", 400)
+		log.Println("Error: Not a websocket handshake", err, 400)
 		return
 	} else if err != nil {
 		http.Error(w, "Cannot setup WebSocket connection:", 400)
@@ -47,11 +45,27 @@ func (c *SSHWebSocketHandle) ServeAfterAuthenticated(w http.ResponseWriter, r *h
 	}
 	defer ws.Close()
 
+	userInfo := session.Value.(models.UserInfo)
+	cols := utils.GetQueryInt32(r, "cols", 120)
+	rows := utils.GetQueryInt32(r, "rows", 32)
+	sshAuth := ssh.Password(userInfo.Password)
+	if err := c.SSHShellOverWS(ws,  claims.Host, claims.Port, userInfo.Username, sshAuth, cols, rows); err !=nil{
+		log.Println("Error,", err)
+		utils.Abort(w, err.Error(), 500)
+	}
+}
+
+// ssh shell over websocket
+// first,we establish a ssh connection to ssh server when a webSocket comes;
+// then we deliver ssh data via ssh connection between browser and ssh server.
+// That is, read webSocket data from browser (e.g. 'ls' command) and send data to ssh server via ssh connection;
+// the other hand, read returned ssh data from ssh server and write back to browser via webSocket API.
+func (c *SSHWebSocketHandle) SSHShellOverWS(ws *websocket.Conn, host string, port int, username string, auth ssh.AuthMethod, cols, rows uint32) error {
 	//setup ssh connection
 	sshEntity := utils.SSHShellSession{
 		Node: utils.Node{
-			Host: claims.Host,
-			Port: claims.Port,
+			Host: host,
+			Port: port,
 		},
 	}
 	// set io for ssh session
@@ -59,22 +73,16 @@ func (c *SSHWebSocketHandle) ServeAfterAuthenticated(w http.ResponseWriter, r *h
 	sshEntity.WriterPipe = &wsBuff
 
 	var sshConn utils.SSHConnInterface = &sshEntity // set interface
-	userInfo := session.Value.(models.UserInfo)
-	err = sshConn.Connect(userInfo.Username, userInfo.Password)
+	err := sshConn.Connect(username, auth)
 	if err != nil {
-		utils.Abort(w, "Cannot setup ssh connection:", 500)
-		log.Println("Error: Cannot setup ssh connection:", err)
-		return
+		return fmt.Errorf("cannot setup ssh connection %w", err)
 	}
 	defer sshConn.Close()
 
 	// config ssh
-	cols := utils.GetQueryInt32(r, "cols", 120)
-	rows := utils.GetQueryInt32(r, "rows", 32)
 	sshSession, err := sshConn.Config(cols, rows);
 	if err != nil {
-		log.Println("Error: configure ssh error:", err)
-		return
+		return fmt.Errorf("configure ssh error: %w", err)
 	}
 
 	// an egg:
@@ -140,4 +148,5 @@ func (c *SSHWebSocketHandle) ServeAfterAuthenticated(w http.ResponseWriter, r *h
 	<-done
 	stopper <- true // stop tick timer(if tick is finished by due to the bad WebSocket, this line will just only set channel(no bad effect). )
 	log.Println("Info: websocket finished!")
+	return nil
 }

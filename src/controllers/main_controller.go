@@ -3,6 +3,7 @@ package controllers
 import (
 	"github.com/genshen/ssh-web-console/src/models"
 	"github.com/genshen/ssh-web-console/src/utils"
+	"golang.org/x/crypto/ssh"
 	"net/http"
 	"strconv"
 )
@@ -33,7 +34,7 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 			session := utils.SSHShellSession{}
 			session.Node.Host = userinfo.Host
 			session.Node.Port = userinfo.Port
-			err := session.Connect(userinfo.Username, userinfo.Password)
+			err := session.Connect(userinfo.Username, ssh.Password(userinfo.Password))
 			if err != nil {
 				errUnmarshal = models.JsonResponse{HasError: true, Message: models.SIGN_IN_FORM_TYPE_ERROR_PASSWORD}
 			} else {
