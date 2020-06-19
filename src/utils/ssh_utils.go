@@ -19,8 +19,8 @@ type SSHConnInterface interface {
 	Close()
 	// connect using username and password
 	Connect(username, password string) error
-	// config connection after connected
-	Config(cols, rows uint32) error
+	// config connection after connected and may also create a ssh session.
+	Config(cols, rows uint32) (*ssh.Session, error)
 }
 
 type Node struct {
@@ -37,7 +37,7 @@ func (node *Node) GetClient() (*ssh.Client, error) {
 }
 
 //see: http://www.nljb.net/default/Go-SSH-%E4%BD%BF%E7%94%A8/
-// establish a ssh connection. if success return nil, than can operate ssh connection via pointer SSH.client in struct SSH.
+// establish a ssh connection. if success return nil, than can operate ssh connection via pointer Node.client in struct Node.
 func (node *Node) Connect(username, password string) error {
 	//var hostKey ssh.PublicKey
 
@@ -72,25 +72,27 @@ type SSHShellSession struct {
 	StdinPipe io.WriteCloser
 	// Write() be called to receive data from ssh server
 	WriterPipe io.Writer
-	Session    *ssh.Session
+	session    *ssh.Session
 }
 
 // setup ssh shell session
-// set Session and StdinPipe here,
-// and the Session.Stdout and Session.Sdterr are also set.
-func (s *SSHShellSession) Config(cols, rows uint32) error {
+// set SSHShellSession.session and StdinPipe from created session here.
+// and Session.Stdout and Session.Stderr are also set for outputting.
+// Return value is a pointer of ssh session which is created by ssh client for shell interaction.
+// If it has error in this func, ssh session will be nil.
+func (s *SSHShellSession) Config(cols, rows uint32) (*ssh.Session, error) {
 	session, err := s.client.NewSession()
 	if err != nil {
-		return err
+		return nil, err
 	}
-	s.Session = session
+	s.session = session
 
 	// we set stdin, then we can write data to ssh server via this stdin.
 	// but, as for reading data from ssh server, we can set Session.Stdout and Session.Stderr
 	// to receive data from ssh server, and write back to somewhere.
-	if stdin, err := s.Session.StdinPipe(); err != nil {
+	if stdin, err := session.StdinPipe(); err != nil {
 		log.Fatal("failed to set IO stdin: ", err)
-		return err
+		return nil, err
 	} else {
 		// in fact, stdin it is channel.
 		s.StdinPipe = stdin
@@ -98,7 +100,7 @@ func (s *SSHShellSession) Config(cols, rows uint32) error {
 
 	// set writer, such the we can receive ssh server's data and write the data to somewhere specified by WriterPipe.
 	if s.WriterPipe == nil {
-		return errors.New("WriterPipe is nil")
+		return nil, errors.New("WriterPipe is nil")
 	}
 	session.Stdout = s.WriterPipe
 	session.Stderr = s.WriterPipe
@@ -111,19 +113,19 @@ func (s *SSHShellSession) Config(cols, rows uint32) error {
 	// Request pseudo terminal
 	if err := session.RequestPty("xterm", int(rows), int(cols), modes); err != nil {
 		log.Fatal("request for pseudo terminal failed: ", err)
-		return err
+		return nil, err
 	}
 	// Start remote shell
 	if err := session.Shell(); err != nil {
 		log.Fatal("failed to start shell: ", err)
-		return err
+		return nil, err
 	}
-	return nil
+	return session,nil
 }
 
 func (s *SSHShellSession) Close() {
-	if s.Session != nil {
-		s.Session.Close()
+	if s.session != nil {
+		s.session.Close()
 	}
 
 	if s.client != nil {

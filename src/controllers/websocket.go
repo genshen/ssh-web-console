@@ -71,13 +71,14 @@ func (c *SSHWebSocketHandle) ServeAfterAuthenticated(w http.ResponseWriter, r *h
 	// config ssh
 	cols := utils.GetQueryInt32(r, "cols", 120)
 	rows := utils.GetQueryInt32(r, "rows", 32)
-	if err = sshConn.Config(cols, rows); err != nil {
+	sshSession, err := sshConn.Config(cols, rows);
+	if err != nil {
 		log.Println("Error: configure ssh error:", err)
 		return
 	}
 
 	// an egg:
-	//if err := sshEntity.Session.Setenv("SSH_EGG", SSH_EGG); err != nil {
+	//if err := sshSession.Setenv("SSH_EGG", SSH_EGG); err != nil {
 	//	log.Println(err)
 	//}
 	// after configure, the WebSocket is ok.
@@ -98,7 +99,7 @@ func (c *SSHWebSocketHandle) ServeAfterAuthenticated(w http.ResponseWriter, r *h
 				log.Println("Error: error reading webSocket message:", err)
 				return
 			}
-			if err = DispatchMessage(sshEntity.Session, msgType, p, wc); err != nil {
+			if err = DispatchMessage(sshSession, msgType, p, wc); err != nil {
 				log.Println("Error: error write data to ssh server:", err)
 				return
 			}
@@ -129,7 +130,7 @@ func (c *SSHWebSocketHandle) ServeAfterAuthenticated(w http.ResponseWriter, r *h
 	go writeBufferToWebSocket()
 	go func() {
 		defer setDone()
-		if err := sshEntity.Session.Wait(); err != nil {
+		if err := sshSession.Wait(); err != nil {
 			log.Println("ssh exist from server", err)
 		}
 		// if ssh is closed (wait returns), then 'done', web socket will be closed.
