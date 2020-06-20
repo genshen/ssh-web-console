@@ -1,27 +1,25 @@
 package controllers
 
 import (
+	"context"
 	"fmt"
 	"github.com/genshen/ssh-web-console/src/models"
 	"github.com/genshen/ssh-web-console/src/utils"
-	"github.com/gorilla/websocket"
 	"golang.org/x/crypto/ssh"
 	"io"
 	"log"
 	"net/http"
+	"nhooyr.io/websocket"
 	"time"
 )
 
 //const SSH_EGG = `genshen<genshenchu@gmail.com> https://github.com/genshen/sshWebConsole"`
 
 type SSHWebSocketHandle struct {
-	upgrader websocket.Upgrader
 }
 
 func NewSSHWSHandle() *SSHWebSocketHandle {
 	var handle SSHWebSocketHandle
-	handle.upgrader.ReadBufferSize = 1024
-	handle.upgrader.WriteBufferSize = 1024
 	return &handle
 }
 
@@ -33,23 +31,19 @@ func (c *SSHWebSocketHandle) ShouldClearSessionAfterExec() bool {
 // handle webSocket connection.
 func (c *SSHWebSocketHandle) ServeAfterAuthenticated(w http.ResponseWriter, r *http.Request, claims *utils.Claims, session utils.Session) {
 	// init webSocket connection
-	ws, err := c.upgrader.Upgrade(w, r, nil)
-	if _, ok := err.(websocket.HandshakeError); ok {
-		utils.Abort(w, "Not a websocket handshake", 400)
-		log.Println("Error: Not a websocket handshake", err, 400)
-		return
-	} else if err != nil {
+	conn, err := websocket.Accept(w, r, nil)
+	if err != nil {
 		http.Error(w, "Cannot setup WebSocket connection:", 400)
 		log.Println("Error: Cannot setup WebSocket connection:", err)
 		return
 	}
-	defer ws.Close()
+	defer conn.Close(websocket.StatusNormalClosure, "closed")
 
 	userInfo := session.Value.(models.UserInfo)
 	cols := utils.GetQueryInt32(r, "cols", 120)
 	rows := utils.GetQueryInt32(r, "rows", 32)
 	sshAuth := ssh.Password(userInfo.Password)
-	if err := c.SSHShellOverWS(ws,  claims.Host, claims.Port, userInfo.Username, sshAuth, cols, rows); err !=nil{
+	if err := c.SSHShellOverWS(r.Context(), conn, claims.Host, claims.Port, userInfo.Username, sshAuth, cols, rows); err != nil {
 		log.Println("Error,", err)
 		utils.Abort(w, err.Error(), 500)
 	}
@@ -60,7 +54,7 @@ func (c *SSHWebSocketHandle) ServeAfterAuthenticated(w http.ResponseWriter, r *h
 // then we deliver ssh data via ssh connection between browser and ssh server.
 // That is, read webSocket data from browser (e.g. 'ls' command) and send data to ssh server via ssh connection;
 // the other hand, read returned ssh data from ssh server and write back to browser via webSocket API.
-func (c *SSHWebSocketHandle) SSHShellOverWS(ws *websocket.Conn, host string, port int, username string, auth ssh.AuthMethod, cols, rows uint32) error {
+func (c *SSHWebSocketHandle) SSHShellOverWS(ctx context.Context, ws *websocket.Conn, host string, port int, username string, auth ssh.AuthMethod, cols, rows uint32) error {
 	//setup ssh connection
 	sshEntity := utils.SSHShellSession{
 		Node: utils.Node{
@@ -80,7 +74,7 @@ func (c *SSHWebSocketHandle) SSHShellOverWS(ws *websocket.Conn, host string, por
 	defer sshConn.Close()
 
 	// config ssh
-	sshSession, err := sshConn.Config(cols, rows);
+	sshSession, err := sshConn.Config(cols, rows)
 	if err != nil {
 		return fmt.Errorf("configure ssh error: %w", err)
 	}
@@ -90,7 +84,7 @@ func (c *SSHWebSocketHandle) SSHShellOverWS(ws *websocket.Conn, host string, por
 	//	log.Println(err)
 	//}
 	// after configure, the WebSocket is ok.
-	defer wsBuff.Flush(websocket.TextMessage, ws)
+	defer wsBuff.Flush(ctx, websocket.MessageText, ws)
 
 	done := make(chan bool, 3)
 	setDone := func() { done <- true }
@@ -99,7 +93,7 @@ func (c *SSHWebSocketHandle) SSHShellOverWS(ws *websocket.Conn, host string, por
 	writeMessageToSSHServer := func(wc io.WriteCloser) { // read messages from webSocket
 		defer setDone()
 		for {
-			msgType, p, err := ws.ReadMessage()
+			msgType, p, err := ws.Read(ctx)
 			// if WebSocket is closed by some reason, then this func will return,
 			// and 'done' channel will be set, the outer func will reach to the end.
 			// then ssh session will be closed in defer.
@@ -124,7 +118,7 @@ func (c *SSHWebSocketHandle) SSHShellOverWS(ws *websocket.Conn, host string, por
 		for {
 			select {
 			case <-tick.C:
-				if err := wsBuff.Flush(websocket.TextMessage, ws); err != nil {
+				if err := wsBuff.Flush(ctx, websocket.MessageText, ws); err != nil {
 					log.Println("Error: error sending data via webSocket:", err)
 					return
 				}

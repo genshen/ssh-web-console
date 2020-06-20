@@ -3,11 +3,12 @@ package files
 import (
 	"github.com/genshen/ssh-web-console/src/models"
 	"github.com/genshen/ssh-web-console/src/utils"
-	"github.com/gorilla/websocket"
 	"github.com/oklog/ulid"
 	"log"
 	"math/rand"
 	"net/http"
+	"nhooyr.io/websocket"
+	"nhooyr.io/websocket/wsjson"
 	"time"
 )
 
@@ -22,17 +23,13 @@ func (e SftpEstablish) ShouldClearSessionAfterExec() bool {
 // and then, handle all message from message (e.g.list files in one directory.).
 func (e SftpEstablish) ServeAfterAuthenticated(w http.ResponseWriter, r *http.Request, claims *utils.Claims, session utils.Session) {
 	// init webSocket connection
-	ws, err := websocket.Upgrade(w, r, nil, 1024, 1024)
-	if _, ok := err.(websocket.HandshakeError); ok {
-		utils.Abort(w, "Not a webSocket handshake", 400)
-		log.Println("Error: Not a websocket handshake", 400)
-		return
-	} else if err != nil {
+	ws, err := websocket.Accept(w, r, nil)
+	if err != nil {
 		http.Error(w, "Cannot setup WebSocket connection:", 400)
 		log.Println("Error: Cannot setup WebSocket connection:", err)
 		return
 	}
-	defer ws.Close()
+	defer ws.Close(websocket.StatusNormalClosure, "closed")
 
 	// add sftp client to list if success.
 	user := session.Value.(models.UserInfo)
@@ -50,12 +47,12 @@ func (e SftpEstablish) ServeAfterAuthenticated(w http.ResponseWriter, r *http.Re
 	Join(id.String(), sftpEntity) // note:key is not for user auth, but for identify different connections.
 	defer Leave(id.String())      // close sftp connection anf remove sftpEntity from list.
 
-	ws.WriteJSON(models.SftpWebSocketMessage{Type: models.SftpWebSocketMessageTypeID, Data: id.String()})
+	wsjson.Write(r.Context(), ws, models.SftpWebSocketMessage{Type: models.SftpWebSocketMessageTypeID, Data: id.String()})
 
 	// dispatch webSocket Messages.
 	// process webSocket message one by one at present. todo improvement.
 	for {
-		_, _, err := ws.ReadMessage()
+		_, _, err := ws.Read(r.Context())
 		if err != nil {
 			log.Println("Error: error reading webSocket message:", err)
 			break

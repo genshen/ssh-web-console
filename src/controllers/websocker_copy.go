@@ -2,7 +2,8 @@ package controllers
 
 import (
 	"bytes"
-	"github.com/gorilla/websocket"
+	"context"
+	"nhooyr.io/websocket"
 	"sync"
 )
 
@@ -24,9 +25,11 @@ func (w *WebSocketBufferWriter) Write(p []byte) (int, error) {
 }
 
 // flush all data in this buff into WebSocket.
-func (w *WebSocketBufferWriter) Flush(messageType int, ws *websocket.Conn) error {
+func (w *WebSocketBufferWriter) Flush(ctx context.Context, messageType websocket.MessageType, ws *websocket.Conn) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	if w.buffer.Len() != 0 {
-		err := ws.WriteMessage(messageType, []byte(w.buffer.Bytes()))
+		err := ws.Write(ctx, messageType, w.buffer.Bytes())
 		if err != nil {
 			return err
 		}

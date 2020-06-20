@@ -6,9 +6,10 @@ import (
 	"github.com/genshen/ssh-web-console/src/models"
 	"golang.org/x/crypto/ssh"
 	"io"
+	"nhooyr.io/websocket"
 )
 
-func DispatchMessage(sshSession *ssh.Session, messageType int, wsData []byte, wc io.WriteCloser) error {
+func DispatchMessage(sshSession *ssh.Session, messageType websocket.MessageType, wsData []byte, wc io.WriteCloser) error {
 	var socketData json.RawMessage
 	socketStream := models.SSHWebSocketMessage{
 		Data: &socketData,
