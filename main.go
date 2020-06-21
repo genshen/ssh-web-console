@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"github.com/genshen/ssh-web-console/src/routers"
 	"github.com/genshen/ssh-web-console/src/utils"
 	"log"
@@ -9,13 +10,19 @@ import (
 )
 
 var confFilePath string
+var version bool
 
 func init() {
 	flag.StringVar(&confFilePath, "config", "conf/config.yaml", "filepath of config file.")
+	flag.BoolVar(&version, "version", false, "show current version.")
 }
 
 func main() {
 	flag.Parse()
+	if version {
+		fmt.Println("v0.2.1")
+		return
+	}
 	if err := utils.InitConfig(confFilePath); err != nil {
 		log.Fatal("config error,", err)
 		return
