@@ -16,10 +16,12 @@ import (
 //const SSH_EGG = `genshen<genshenchu@gmail.com> https://github.com/genshen/sshWebConsole"`
 
 type SSHWebSocketHandle struct {
+	bufferFlushCycle int
 }
 
-func NewSSHWSHandle() *SSHWebSocketHandle {
+func NewSSHWSHandle(bfc int) *SSHWebSocketHandle {
 	var handle SSHWebSocketHandle
+	handle.bufferFlushCycle = bfc
 	return &handle
 }
 
@@ -112,7 +114,7 @@ func (c *SSHWebSocketHandle) SSHShellOverWS(ctx context.Context, ws *websocket.C
 	// check webSocketWriterBuffer(if not empty,then write back to webSocket) every 120 ms.
 	writeBufferToWebSocket := func() {
 		defer setDone()
-		tick := time.NewTicker(time.Millisecond * time.Duration(utils.Config.SSH.BufferCheckerCycleTime))
+		tick := time.NewTicker(time.Millisecond * time.Duration(c.bufferFlushCycle))
 		//for range time.Tick(120 * time.Millisecond){}
 		defer tick.Stop()
 		for {

@@ -49,12 +49,13 @@ func Register() {
 		http.Handle(utils.Config.Prod.StaticPrefix, http.StripPrefix(utils.Config.Prod.StaticPrefix, http.FileServer(statikFS)))
 	}
 
+	bct := utils.Config.SSH.BufferCheckerCycleTime
 	// api
 	http.HandleFunc("/api/signin", controllers.SignIn)
 	http.HandleFunc("/api/sftp/upload", controllers.AuthPreChecker(files.FileUpload{}))
 	http.HandleFunc("/api/sftp/ls", controllers.AuthPreChecker(files.List{}))
 	http.HandleFunc("/api/sftp/dl", controllers.AuthPreChecker(files.Download{}))
-	http.HandleFunc("/ws/ssh", controllers.AuthPreChecker(controllers.NewSSHWSHandle()))
+	http.HandleFunc("/ws/ssh", controllers.AuthPreChecker(controllers.NewSSHWSHandle(bct)))
 	http.HandleFunc("/ws/sftp", controllers.AuthPreChecker(files.SftpEstablish{}))
 }
 
