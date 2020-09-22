@@ -60,7 +60,7 @@ func Register() {
 }
 
 /*
-* disable directory index, code from https://groups.google.com/forum/#!topic/golang-nuts/bStLPdIVM6w
+ * disable directory index, code from https://groups.google.com/forum/#!topic/golang-nuts/bStLPdIVM6w
  */
 type justFilesFilesystem struct {
 	fs http.FileSystem

@@ -124,7 +124,7 @@ func (s *SSHShellSession) Config(cols, rows uint32) (*ssh.Session, error) {
 		log.Fatal("failed to start shell: ", err)
 		return nil, err
 	}
-	return session,nil
+	return session, nil
 }
 
 func (s *SSHShellSession) Close() {
@@ -195,7 +195,7 @@ func (ch *SSHShellChannel) Config(cols, rows uint32) error {
 	ok, err := channel.SendRequest("pty-req", true, ssh.Marshal(&req))
 	if !ok || err != nil {
 		return errors.New("error sending pty-request" +
-			func() (string) {
+			func() string {
 				if err == nil {
 					return ""
 				}
@@ -206,7 +206,7 @@ func (ch *SSHShellChannel) Config(cols, rows uint32) error {
 	ok, err = channel.SendRequest("shell", true, nil)
 	if !ok || err != nil {
 		return errors.New("error sending shell-request" +
-			func() (string) {
+			func() string {
 				if err == nil {
 					return ""
 				}

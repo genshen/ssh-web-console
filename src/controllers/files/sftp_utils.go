@@ -78,7 +78,7 @@ func Fork(key string) (SftpEntity, bool) {
 
 // make a copy of SftpEntity matched with given key.
 // return sftp.client pointer or nil pointer.
-func ForkSftpClient(key string) (*sftp.Client) {
+func ForkSftpClient(key string) *sftp.Client {
 	mutex.Lock()
 	defer mutex.Unlock()
 	//subscribers.PushBack(client)

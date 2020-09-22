@@ -3,7 +3,7 @@ package models
 import "github.com/genshen/ssh-web-console/src/utils"
 
 const (
-	SIGN_IN_FORM_TYPE_ERROR_VALID    = iota
+	SIGN_IN_FORM_TYPE_ERROR_VALID = iota
 	SIGN_IN_FORM_TYPE_ERROR_PASSWORD
 	SIGN_IN_FORM_TYPE_ERROR_TEST
 )
