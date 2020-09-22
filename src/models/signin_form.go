@@ -9,7 +9,7 @@ const (
 )
 
 type UserInfo struct {
-	utils.Connection
+	utils.JwtConnection
 	Username string `json:"username"`
 	Password string `json:"-"`
 }

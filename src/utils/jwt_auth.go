@@ -1,26 +1,32 @@
 package utils
 
 import (
-	"fmt"
-	"time"
 	"errors"
+	"fmt"
 	"github.com/dgrijalva/jwt-go"
+	"time"
 )
 
-type Connection Node // struct alias.
+// payload in jwt
+type JwtConnection struct {
+	Host string
+	Port int
+}
 
 type Claims struct {
-	Connection
+	JwtConnection
 	jwt.StandardClaims
 }
 
 // create a jwt token,and return this token as string type.
-func JwtNewToken(connection Connection, issuer string) (tokenString string, expire int64, err error) {
+// we can create a new token with Claims in it if login is successful.
+// then, we can known the host and port when setting up websocket or sftp.
+func JwtNewToken(connection JwtConnection, issuer string) (tokenString string, expire int64, err error) {
 	expireToken := time.Now().Add(time.Second * time.Duration(Config.Jwt.TokenLifetime)).Unix()
 
 	// We'll manually assign the claims but in production you'd insert values from a database
 	claims := Claims{
-		Connection: connection,
+		JwtConnection: connection,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expireToken,
 			Issuer:    issuer,

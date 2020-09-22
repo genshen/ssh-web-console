@@ -59,10 +59,7 @@ func (c *SSHWebSocketHandle) ServeAfterAuthenticated(w http.ResponseWriter, r *h
 func (c *SSHWebSocketHandle) SSHShellOverWS(ctx context.Context, ws *websocket.Conn, host string, port int, username string, auth ssh.AuthMethod, cols, rows uint32) error {
 	//setup ssh connection
 	sshEntity := utils.SSHShellSession{
-		Node: utils.Node{
-			Host: host,
-			Port: port,
-		},
+		Node: utils.NewSSHNode(host, port),
 	}
 	// set io for ssh session
 	var wsBuff WebSocketBufferWriter

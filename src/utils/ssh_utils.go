@@ -29,6 +29,10 @@ type Node struct {
 	client *ssh.Client
 }
 
+func NewSSHNode(host string, port int) Node {
+	return Node{Host: host, Port: port, client: nil}
+}
+
 func (node *Node) GetClient() (*ssh.Client, error) {
 	if node.client == nil {
 		return nil, errors.New("client is not set")

@@ -32,8 +32,7 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 		if userinfo.Host != "" && userinfo.Username != "" {
 			//try to login session account
 			session := utils.SSHShellSession{}
-			session.Node.Host = userinfo.Host
-			session.Node.Port = userinfo.Port
+			session.Node = utils.NewSSHNode(userinfo.Host, userinfo.Port)
 			err := session.Connect(userinfo.Username, ssh.Password(userinfo.Password))
 			if err != nil {
 				errUnmarshal = models.JsonResponse{HasError: true, Message: models.SIGN_IN_FORM_TYPE_ERROR_PASSWORD}
@@ -47,7 +46,7 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 				}
 				if session, err := client.NewSession(); err == nil {
 					if err := session.Run("whoami"); err == nil {
-						if token, expireUnix, err := utils.JwtNewToken(userinfo.Connection, utils.Config.Jwt.Issuer); err == nil {
+						if token, expireUnix, err := utils.JwtNewToken(userinfo.JwtConnection, utils.Config.Jwt.Issuer); err == nil {
 							errUnmarshal = models.JsonResponse{HasError: false, Addition: token}
 							utils.ServeJSON(w, errUnmarshal)
 							utils.SessionStorage.Put(token, expireUnix, userinfo)
