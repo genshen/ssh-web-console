@@ -17,7 +17,7 @@ func (f FileUpload) ShouldClearSessionAfterExec() bool {
 
 func (f FileUpload) ServeAfterAuthenticated(w http.ResponseWriter, r *http.Request, claims *utils.Claims, session utils.Session) {
 	cid := r.URL.Query().Get("cid") // get connection id.
-	if sftpClient := ForkSftpClient(cid); sftpClient == nil {
+	if sftpClient := utils.ForkSftpClient(cid); sftpClient == nil {
 		utils.Abort(w, "error: lost sftp connection.", 400)
 		log.Println("Error: lost sftp connection.")
 		return

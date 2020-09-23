@@ -1,18 +1,17 @@
-package files
+package utils
 
 import (
-	"github.com/genshen/ssh-web-console/src/utils"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 	"log"
 	"sync"
 )
 
-type SftpNode utils.Node // struct alias.
+type SftpNode Node // struct alias.
 
 type SftpEntity struct {
-	sshEntity  *utils.SSHShellSession // from utils/ssh_utils
-	sftpClient *sftp.Client           // sftp session created by sshEntity.client..
+	sshEntity  *SSHShellSession // from utils/ssh_utils
+	sftpClient *sftp.Client     // sftp session created by sshEntity.client..
 }
 
 // close sftp session and ssh client
@@ -26,13 +25,13 @@ func (con *SftpEntity) Close() {
 }
 
 var (
-	mutex       = new(sync.RWMutex)
+	sftpMutex       = new(sync.RWMutex)
 	subscribers = make(map[string]SftpEntity)
 )
 
 func NewSftpEntity(user SftpNode, username string, auth ssh.AuthMethod) (SftpEntity, error) {
-	sshEntity := utils.SSHShellSession{
-		Node: utils.NewSSHNode(user.Host, user.Port),
+	sshEntity := SSHShellSession{
+		Node: NewSSHNode(user.Host, user.Port),
 	}
 	// init ssh connection.
 	err := sshEntity.Connect(username, auth)
@@ -54,20 +53,20 @@ func NewSftpEntity(user SftpNode, username string, auth ssh.AuthMethod) (SftpEnt
 
 // add a sftp client to subscribers list.
 func Join(key string, sftpEntity SftpEntity) {
-	mutex.Lock()
+	sftpMutex.Lock()
 	//subscribers.PushBack(client)
 	if c, ok := subscribers[key]; ok {
 		c.Close() // if client have exists, close the client.
 	}
 	subscribers[key] = sftpEntity // store sftpEntity.
-	mutex.Unlock()
+	sftpMutex.Unlock()
 }
 
 // make a copy of SftpEntity matched with given key.
 // return sftpEntity and exist flag (bool).
 func Fork(key string) (SftpEntity, bool) {
-	mutex.Lock()
-	defer mutex.Unlock()
+	sftpMutex.Lock()
+	defer sftpMutex.Unlock()
 	//subscribers.PushBack(client)
 	if c, ok := subscribers[key]; ok {
 		return c, true
@@ -79,8 +78,8 @@ func Fork(key string) (SftpEntity, bool) {
 // make a copy of SftpEntity matched with given key.
 // return sftp.client pointer or nil pointer.
 func ForkSftpClient(key string) *sftp.Client {
-	mutex.Lock()
-	defer mutex.Unlock()
+	sftpMutex.Lock()
+	defer sftpMutex.Unlock()
 	//subscribers.PushBack(client)
 	if c, ok := subscribers[key]; ok {
 		return c.sftpClient
@@ -91,11 +90,11 @@ func ForkSftpClient(key string) *sftp.Client {
 
 // remove a sftp client by key.
 func Leave(key string) {
-	mutex.Lock()
+	sftpMutex.Lock()
 	//subscribers.PushBack(client)
 	if c, ok := subscribers[key]; ok {
 		c.Close()                // close the client.
 		delete(subscribers, key) // remove from map.
 	}
-	mutex.Unlock()
+	sftpMutex.Unlock()
 }

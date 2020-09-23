@@ -16,7 +16,7 @@ func (d Download) ShouldClearSessionAfterExec() bool {
 
 func (d Download) ServeAfterAuthenticated(w http.ResponseWriter, r *http.Request, claims *utils.Claims, session utils.Session) {
 	cid := r.URL.Query().Get("cid") // get connection id.
-	if client := ForkSftpClient(cid); client == nil {
+	if client := utils.ForkSftpClient(cid); client == nil {
 		utils.Abort(w, "error: lost sftp connection.", 400)
 		log.Println("Error: lost sftp connection.")
 		return

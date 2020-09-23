@@ -22,7 +22,7 @@ func (f List) ShouldClearSessionAfterExec() bool {
 func (f List) ServeAfterAuthenticated(w http.ResponseWriter, r *http.Request, claims *utils.Claims, session utils.Session) {
 	response := models.JsonResponse{HasError: true}
 	cid := r.URL.Query().Get("cid") // get connection id.
-	if client := ForkSftpClient(cid); client == nil {
+	if client := utils.ForkSftpClient(cid); client == nil {
 		utils.Abort(w, "error: lost sftp connection.", 400)
 		log.Println("Error: lost sftp connection.")
 		return

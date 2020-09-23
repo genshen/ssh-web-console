@@ -34,7 +34,7 @@ func (e SftpEstablish) ServeAfterAuthenticated(w http.ResponseWriter, r *http.Re
 
 	// add sftp client to list if success.
 	user := session.Value.(models.UserInfo)
-	sftpEntity, err := NewSftpEntity(SftpNode(utils.NewSSHNode(user.Host, user.Port)), user.Username, ssh.Password(user.Password))
+	sftpEntity, err := utils.NewSftpEntity(utils.SftpNode(utils.NewSSHNode(user.Host, user.Port)), user.Username, ssh.Password(user.Password))
 	if err != nil {
 		http.Error(w, "Error while establishing sftp connection", 400)
 		log.Println("Error: while establishing sftp connection", err)
@@ -45,8 +45,8 @@ func (e SftpEstablish) ServeAfterAuthenticated(w http.ResponseWriter, r *http.Re
 	entropy := rand.New(rand.NewSource(t.UnixNano()))
 	id := ulid.MustNew(ulid.Timestamp(t), entropy)
 	// add sftpEntity to list.
-	Join(id.String(), sftpEntity) // note:key is not for user auth, but for identify different connections.
-	defer Leave(id.String())      // close sftp connection anf remove sftpEntity from list.
+	utils.Join(id.String(), sftpEntity) // note:key is not for user auth, but for identify different connections.
+	defer utils.Leave(id.String())      // close sftp connection anf remove sftpEntity from list.
 
 	wsjson.Write(r.Context(), ws, models.SftpWebSocketMessage{Type: models.SftpWebSocketMessageTypeID, Data: id.String()})
 
