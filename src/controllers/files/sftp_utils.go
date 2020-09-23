@@ -30,12 +30,12 @@ var (
 	subscribers = make(map[string]SftpEntity)
 )
 
-func NewSftpEntity(user SftpNode, username, password string) (SftpEntity, error) {
+func NewSftpEntity(user SftpNode, username string, auth ssh.AuthMethod) (SftpEntity, error) {
 	sshEntity := utils.SSHShellSession{
 		Node: utils.NewSSHNode(user.Host, user.Port),
 	}
 	// init ssh connection.
-	err := sshEntity.Connect(username, ssh.Password(password))
+	err := sshEntity.Connect(username, auth)
 	if err != nil {
 		return SftpEntity{}, err
 	}
