@@ -3,7 +3,7 @@ package files
 import (
 	"github.com/genshen/ssh-web-console/src/models"
 	"github.com/genshen/ssh-web-console/src/utils"
-	"github.com/oklog/ulid"
+	"github.com/oklog/ulid/v2"
 	"golang.org/x/crypto/ssh"
 	"log"
 	"math/rand"
