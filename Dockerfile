@@ -13,13 +13,14 @@ RUN cd web-console \
 FROM golang:1.13.1-alpine AS builder
 
 # set to 'on' if using go module
-ARG STATIC_DIR=dist
+ARG STATIC_DIR=build
+
 
 RUN apk add --no-cache git \
     && go get -u github.com/rakyll/statik
 
 COPY ./  /go/src/github.com/genshen/ssh-web-console/
-COPY --from=frontend-builder web-console/dist /go/src/github.com/genshen/ssh-web-console/${STATIC_DIR}/
+COPY --from=frontend-builder web-console/build /go/src/github.com/genshen/ssh-web-console/${STATIC_DIR}/
 
 RUN cd ./src/github.com/genshen/ssh-web-console/ \
     && statik -src=${STATIC_DIR} \
