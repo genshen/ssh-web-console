@@ -1,9 +1,9 @@
 package utils
 
 import (
+	"fmt"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
-	"log"
 	"sync"
 )
 
@@ -15,17 +15,24 @@ type SftpEntity struct {
 }
 
 // close sftp session and ssh client
-func (con *SftpEntity) Close() {
-	defer con.sshEntity.Close()
-
-	err := con.sftpClient.Close()
-	if err != nil { // todo for debug.
-		log.Println(err)
+func (con *SftpEntity) Close() error {
+	var e error = nil
+	// close sftp client
+	if err := con.sftpClient.Close(); err != nil { // todo for debug.
+		e = err
 	}
+
+	// close ssh
+	if err := con.sshEntity.Close(); err != nil && e != nil {
+		return fmt.Errorf("error closing sftp: %w: %s", err, e)
+	} else if err != nil { // e is nil
+		return fmt.Errorf("error closing sftp: %w", err)
+	}
+	return e
 }
 
 var (
-	sftpMutex       = new(sync.RWMutex)
+	sftpMutex   = new(sync.RWMutex)
 	subscribers = make(map[string]SftpEntity)
 )
 
