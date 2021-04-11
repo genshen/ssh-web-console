@@ -83,7 +83,7 @@ func (c *SSHWebSocketHandle) SSHShellOverWS(ctx context.Context, ws *websocket.C
 	//	log.Println(err)
 	//}
 	// after configure, the WebSocket is ok.
-	defer wsBuff.Flush(ctx, websocket.MessageText, ws)
+	defer wsBuff.Flush(ctx, websocket.MessageBinary, ws)
 
 	done := make(chan bool, 3)
 	setDone := func() { done <- true }
@@ -117,7 +117,7 @@ func (c *SSHWebSocketHandle) SSHShellOverWS(ctx context.Context, ws *websocket.C
 		for {
 			select {
 			case <-tick.C:
-				if err := wsBuff.Flush(ctx, websocket.MessageText, ws); err != nil {
+				if err := wsBuff.Flush(ctx, websocket.MessageBinary, ws); err != nil {
 					log.Println("Error: error sending data via webSocket:", err)
 					return
 				}

@@ -2,6 +2,7 @@ package utils
 
 import (
 	"errors"
+	"fmt"
 	"golang.org/x/crypto/ssh"
 	"io"
 	"log"
@@ -16,7 +17,7 @@ const (
 
 type SSHConnInterface interface {
 	// close ssh connection
-	Close()
+	Close() error
 	// connect using username and password
 	Connect(username string, auth ssh.AuthMethod) error
 	// config connection after connected and may also create a ssh session.
@@ -127,14 +128,24 @@ func (s *SSHShellSession) Config(cols, rows uint32) (*ssh.Session, error) {
 	return session, nil
 }
 
-func (s *SSHShellSession) Close() {
+func (s *SSHShellSession) Close() error {
+	var e error = nil
+	// close session first
 	if s.session != nil {
-		s.session.Close()
+		if err := s.session.Close(); err != nil {
+			e = err
+		}
 	}
 
+	// try to close client
 	if s.client != nil {
-		s.client.Close()
+		if err := s.client.Close(); err != nil && e != nil {
+			return fmt.Errorf("error closing ssh client: %w: %s", err, e.Error())
+		} else if err != nil { // e is nil
+			return fmt.Errorf("error closing ssh client: %w", err)
+		}
 	}
+	return e
 }
 
 // deprecated, use session SSHShellSession instead

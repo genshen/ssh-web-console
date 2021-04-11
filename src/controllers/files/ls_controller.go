@@ -3,6 +3,7 @@ package files
 import (
 	"github.com/genshen/ssh-web-console/src/models"
 	"github.com/genshen/ssh-web-console/src/utils"
+	"io/fs"
 	"log"
 	"net/http"
 	"path"
@@ -10,9 +11,9 @@ import (
 
 type List struct{}
 type Ls struct {
-	Name  string `json:"name"`
-	Path  string `json:"path"` // including Name
-	IsDir bool   `json:"is_dir"`
+	Name  string      `json:"name"`
+	Path  string      `json:"path"` // including Name
+	Mode  fs.FileMode `json:"mode"`
 }
 
 func (f List) ShouldClearSessionAfterExec() bool {
@@ -34,9 +35,9 @@ func (f List) ServeAfterAuthenticated(w http.ResponseWriter, r *http.Request, cl
 				response.Addition = "no such path"
 			} else {
 				response.HasError = false
-				fileList := make([]Ls,0) // this will not be converted to null if slice is empty.
+				fileList := make([]Ls, 0) // this will not be converted to null if slice is empty.
 				for _, file := range files {
-					fileList = append(fileList, Ls{Name: file.Name(), IsDir: file.IsDir(), Path:path.Join(relativePath, file.Name())})
+					fileList = append(fileList, Ls{Name: file.Name(), Mode: file.Mode(), Path: path.Join(relativePath, file.Name())})
 				}
 				response.Message = fileList
 			}
