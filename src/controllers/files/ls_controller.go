@@ -3,17 +3,17 @@ package files
 import (
 	"github.com/genshen/ssh-web-console/src/models"
 	"github.com/genshen/ssh-web-console/src/utils"
-	"io/fs"
 	"log"
 	"net/http"
+	"os"
 	"path"
 )
 
 type List struct{}
 type Ls struct {
-	Name  string      `json:"name"`
-	Path  string      `json:"path"` // including Name
-	Mode  fs.FileMode `json:"mode"`
+	Name string      `json:"name"`
+	Path string      `json:"path"` // including Name
+	Mode os.FileMode `json:"mode"` // todo: use io/fs.FileMode
 }
 
 func (f List) ShouldClearSessionAfterExec() bool {
