@@ -1,6 +1,6 @@
+build/
 statik/
-dist/
-views/
+.DS_Store
 
 # Binaries for programs and plugins
 *.exe
