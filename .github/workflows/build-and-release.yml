@@ -1,0 +1,65 @@
+# on:
+#   push:
+    # tags:
+    #   - 'v*'
+on: [push]
+
+name: Build&Release
+
+jobs:
+  build:
+    name: Build release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ^1.16 
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: '14.x'
+
+      - name: Build static
+        run: cd web && yarn && yarn build && cd ../
+
+      - name: Get Go dependencies
+        run: go mod download && go get -u github.com/rakyll/statik
+
+      - name: Static->GO generation
+        run: statik --src=web/build
+
+      - name: Build
+        run: make
+      - uses: actions/upload-artifact@v2
+        with:
+          name: build-artifact
+          path: ssh-web-console-*
+
+  release:
+    name: On Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          name: build-artifact
+      - run: ls -R
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            ssh-web-console-linux-amd64
+            ssh-web-console-linux-arm64
+            ssh-web-console-darwin-amd64
+            ssh-web-console-windows-amd64.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
