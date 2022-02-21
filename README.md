@@ -35,7 +35,7 @@ cd ../
 ### build go
 ```bash
 go get github.com/rakyll/statik
-statik --src=web/build  # use statik tool to convert files in 'web/dist' dir to go code, and compile into binary.
+statik --src=web/build  # use statik tool to convert files in 'web/build' dir to go code, and compile into binary.
 export GO111MODULE=on # for go 1.11.x
 go build
 ```

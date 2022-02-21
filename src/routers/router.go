@@ -49,14 +49,28 @@ func Register() {
 		http.Handle(utils.Config.Prod.StaticPrefix, http.StripPrefix(utils.Config.Prod.StaticPrefix, http.FileServer(statikFS)))
 	}
 
+	// set api prefix
+	apiPrefix := ""
+	if utils.Config.Site.RunMode == RunModeDev && utils.Config.Dev.ApiPrefix != "" {
+		apiPrefix = utils.Config.Dev.ApiPrefix
+	}
+	if utils.Config.Site.RunMode == RunModeProd && utils.Config.Prod.ApiPrefix != "" {
+		apiPrefix = utils.Config.Prod.ApiPrefix
+	}
+	if apiPrefix == "" {
+		log.Println("api serving at endpoint `/`")
+	} else {
+		log.Printf("api serving at endpoint `%s`", apiPrefix)
+	}
+
 	bct := utils.Config.SSH.BufferCheckerCycleTime
 	// api
-	http.HandleFunc("/api/signin", controllers.SignIn)
-	http.HandleFunc("/api/sftp/upload", controllers.AuthPreChecker(files.FileUpload{}))
-	http.HandleFunc("/api/sftp/ls", controllers.AuthPreChecker(files.List{}))
-	http.HandleFunc("/api/sftp/dl", controllers.AuthPreChecker(files.Download{}))
-	http.HandleFunc("/ws/ssh", controllers.AuthPreChecker(controllers.NewSSHWSHandle(bct)))
-	http.HandleFunc("/ws/sftp", controllers.AuthPreChecker(files.SftpEstablish{}))
+	http.HandleFunc(apiPrefix+"/api/signin", controllers.SignIn)
+	http.HandleFunc(apiPrefix+"/api/sftp/upload", controllers.AuthPreChecker(files.FileUpload{}))
+	http.HandleFunc(apiPrefix+"/api/sftp/ls", controllers.AuthPreChecker(files.List{}))
+	http.HandleFunc(apiPrefix+"/api/sftp/dl", controllers.AuthPreChecker(files.Download{}))
+	http.HandleFunc(apiPrefix+"/ws/ssh", controllers.AuthPreChecker(controllers.NewSSHWSHandle(bct)))
+	http.HandleFunc(apiPrefix+"/ws/sftp", controllers.AuthPreChecker(files.SftpEstablish{}))
 }
 
 /*
