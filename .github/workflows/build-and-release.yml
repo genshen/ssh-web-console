@@ -19,18 +19,18 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v2
         with:
-          go-version: ^1.16 
+          go-version: 1.18
 
       - name: Setup Node.js
         uses: actions/setup-node@v1
         with:
-          node-version: '14.x'
+          node-version: '16.x'
 
       - name: Build static
         run: cd web && yarn && yarn build && cd ../
 
       - name: Get Go dependencies
-        run: go mod download && go get -u github.com/rakyll/statik
+        run: go mod download && go install github.com/rakyll/statik@v0.1.7
 
       - name: Static->GO generation
         run: statik --src=web/build
