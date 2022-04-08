@@ -5,12 +5,14 @@ site:
   deploy_host: console.hpc.gensh.me
 
 prod:
-  # http path of static files and views
+  # http path for static files and views
   static_prefix: /
+  api_prefix: ""
 
 dev: # config used in debug mode.
-  # https prefix of static files only
+  # http prefix for static files
   static_prefix: /static/
+  api_prefix: /
   # redirect static files requests to this address, redirect "static_prefix" to "static_redirect"
   # for example, static_prefix is "/static", static_redirect is "localhost:8080/dist",
   # this will redirect all requests having prefix "/static" to "localhost:8080/dist"

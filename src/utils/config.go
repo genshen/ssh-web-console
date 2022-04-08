@@ -15,13 +15,16 @@ var Config struct {
 	} `yaml:"site"`
 	Prod struct {
 		StaticPrefix string `yaml:"static_prefix"` // http prefix of static and views files
+		ApiPrefix    string `yaml:"api_prefix"`
 	} `yaml:"prod"`
 	Dev struct {
 		StaticPrefix string `yaml:"static_prefix"` // https prefix of only static files
 		//StaticPrefix string `yaml:"static_prefix"` // prefix of static files in dev mode.
+		ApiPrefix string `yaml:"api_prefix"`
+
 		// redirect static files requests to this address, redirect "StaticPrefix" to "StaticRedirect + StaticPrefix"
 		// for example, StaticPrefix is "static", StaticRedirect is "localhost:8080/dist",
-		// this will redirect all requests having prefix "static" to "localhost:8080/dist/"
+		// this will redirect all requests having prefix "static" to "localhost:8080/dist/static/"
 		StaticRedirect string `yaml:"static_redirect"`
 		// http server will read static file from this dir if StaticRedirect is empty
 		StaticDir   string `yaml:"static_dir"`
