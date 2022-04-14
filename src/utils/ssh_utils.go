@@ -62,7 +62,7 @@ func (node *Node) Connect(username string, auth ssh.AuthMethod) error {
 		},
 	}
 
-	client, err := ssh.Dial("tcp", node.Host+":"+strconv.Itoa(node.Port), config)
+	client, err := ssh.Dial("tcp", net.JoinHostPort(node.Host, strconv.Itoa(node.Port)), config)
 	if err != nil {
 		return err
 	}
