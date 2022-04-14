@@ -20,7 +20,7 @@ func init() {
 func main() {
 	flag.Parse()
 	if version {
-		fmt.Println("v0.3.0")
+		fmt.Println("v0.4.0")
 		return
 	}
 	if err := utils.InitConfig(confFilePath); err != nil {
