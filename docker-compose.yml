@@ -1,0 +1,9 @@
+version: "3.8"
+services:
+  ssh-web-console:
+    image: genshen/ssh-web-console:latest
+    restart: unless-stopped
+    ports:
+      - "2222:2222"
+    volumes:
+      - "./conf:/home/web/conf"
