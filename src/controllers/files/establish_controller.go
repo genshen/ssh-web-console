@@ -4,7 +4,6 @@ import (
 	"github.com/genshen/ssh-web-console/src/models"
 	"github.com/genshen/ssh-web-console/src/utils"
 	"github.com/oklog/ulid/v2"
-	"golang.org/x/crypto/ssh"
 	"log"
 	"math/rand"
 	"net/http"
@@ -34,7 +33,7 @@ func (e SftpEstablish) ServeAfterAuthenticated(w http.ResponseWriter, r *http.Re
 
 	// add sftp client to list if success.
 	user := session.Value.(models.UserInfo)
-	sftpEntity, err := utils.NewSftpEntity(utils.SftpNode(utils.NewSSHNode(user.Host, user.Port)), user.Username, ssh.Password(user.Password))
+	sftpEntity, err := utils.NewSftpEntity(utils.SftpNode(utils.NewSSHNode(user.Host, user.Port)), user.Username, (user.Password))
 	if err != nil {
 		http.Error(w, "Error while establishing sftp connection", 400)
 		log.Println("Error: while establishing sftp connection", err)

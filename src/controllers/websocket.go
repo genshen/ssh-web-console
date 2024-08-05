@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/genshen/ssh-web-console/src/models"
 	"github.com/genshen/ssh-web-console/src/utils"
-	"golang.org/x/crypto/ssh"
 	"io"
 	"log"
 	"net/http"
@@ -44,7 +43,7 @@ func (c *SSHWebSocketHandle) ServeAfterAuthenticated(w http.ResponseWriter, r *h
 	userInfo := session.Value.(models.UserInfo)
 	cols := utils.GetQueryInt32(r, "cols", 120)
 	rows := utils.GetQueryInt32(r, "rows", 32)
-	sshAuth := ssh.Password(userInfo.Password)
+	sshAuth := (userInfo.Password)
 	if err := c.SSHShellOverWS(r.Context(), conn, claims.Host, claims.Port, userInfo.Username, sshAuth, cols, rows); err != nil {
 		log.Println("Error,", err)
 		utils.Abort(w, err.Error(), 500)
@@ -56,7 +55,7 @@ func (c *SSHWebSocketHandle) ServeAfterAuthenticated(w http.ResponseWriter, r *h
 // then we deliver ssh data via ssh connection between browser and ssh server.
 // That is, read webSocket data from browser (e.g. 'ls' command) and send data to ssh server via ssh connection;
 // the other hand, read returned ssh data from ssh server and write back to browser via webSocket API.
-func (c *SSHWebSocketHandle) SSHShellOverWS(ctx context.Context, ws *websocket.Conn, host string, port int, username string, auth ssh.AuthMethod, cols, rows uint32) error {
+func (c *SSHWebSocketHandle) SSHShellOverWS(ctx context.Context, ws *websocket.Conn, host string, port int, username string, auth string, cols, rows uint32) error {
 	//setup ssh connection
 	sshEntity := utils.SSHShellSession{
 		Node: utils.NewSSHNode(host, port),

@@ -3,7 +3,6 @@ package utils
 import (
 	"fmt"
 	"github.com/pkg/sftp"
-	"golang.org/x/crypto/ssh"
 	"sync"
 )
 
@@ -36,12 +35,12 @@ var (
 	subscribers = make(map[string]SftpEntity)
 )
 
-func NewSftpEntity(user SftpNode, username string, auth ssh.AuthMethod) (SftpEntity, error) {
+func NewSftpEntity(user SftpNode, username string, pwd string) (SftpEntity, error) {
 	sshEntity := SSHShellSession{
 		Node: NewSSHNode(user.Host, user.Port),
 	}
 	// init ssh connection.
-	err := sshEntity.Connect(username, auth)
+	err := sshEntity.Connect(username, pwd)
 	if err != nil {
 		return SftpEntity{}, err
 	}
