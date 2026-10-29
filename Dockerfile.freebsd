@@ -1,0 +1,19 @@
+# Packages the prebuilt ssh-web-console-freebsd-<arch> binary (see Makefile) into a FreeBSD OCI image.
+# No RUN steps: the image is assembled on Linux, where FreeBSD binaries cannot execute.
+# build method: `make ssh-web-console-freebsd-amd64`, copy the binary into an otherwise empty dir, then `docker build --platform freebsd/amd64 -f Dockerfile.freebsd <dir>` (the repo .dockerignore excludes the binaries)
+
+ARG FREEBSD_RELEASE=15.1
+
+FROM docker.io/freebsd/freebsd-runtime:${FREEBSD_RELEASE}
+
+ARG TARGETARCH
+ARG HOME="/home/web"
+
+COPY --chown=65534:65534 ssh-web-console-freebsd-${TARGETARCH} ${HOME}/ssh-web-console
+
+WORKDIR ${HOME}
+USER 65534:65534
+
+VOLUME ["${HOME}/conf"]
+
+CMD ["./ssh-web-console"]

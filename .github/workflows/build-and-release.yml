@@ -86,9 +86,112 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  freebsd-test:
+    name: FreeBSD ${{ matrix.name }} smoke test
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: '15.1'
+            release: '15.1'
+          - name: latest
+            release: ''
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-artifact
+
+      - name: Run on FreeBSD
+        uses: vmactions/freebsd-vm@v1
+        with:
+          release: ${{ matrix.release }}
+          copyback: false
+          run: |
+            set -e
+            freebsd-version
+            chmod +x ssh-web-console-freebsd-amd64
+            ./ssh-web-console-freebsd-amd64 -version
+            ./ssh-web-console-freebsd-amd64 -config conf/config.yaml > server.log 2>&1 &
+            pid=$!
+            sleep 3
+            fetch -qo - http://127.0.0.1:2222/ | grep '<title>SSH Web Console</title>' || { cat server.log; exit 1; }
+            kill $pid
+
+  container-freebsd:
+    name: FreeBSD ${{ matrix.base }} container image
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - base: '15.1'
+            tag: freebsd15.1
+          - base: latest
+            tag: freebsd
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-artifact
+          path: dist
+
+      - name: Resolve FreeBSD release
+        id: base
+        run: |
+          if [ "${{ matrix.base }}" = latest ]; then
+            release=$(curl -fsSL "https://hub.docker.com/v2/repositories/freebsd/freebsd-runtime/tags?page_size=100" \
+              | jq -r '.results[].name' | grep -E '^[0-9]+\.[0-9]+$' | sort -V | tail -n1)
+          else
+            release=${{ matrix.base }}
+          fi
+          test -n "$release"
+          echo "release=$release" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          flavor: latest=false
+          tags: |
+            type=semver,pattern={{version}},suffix=-${{ matrix.tag }}
+            type=raw,value=${{ matrix.tag }},enable=${{ startsWith(github.ref, 'refs/tags/') && !contains(github.ref_name, '-') }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: dist
+          file: Dockerfile.freebsd
+          platforms: freebsd/amd64,freebsd/arm64
+          build-args: FREEBSD_RELEASE=${{ steps.base.outputs.release }}
+          push: ${{ startsWith(github.ref, 'refs/tags/') }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
   release:
     name: On Release
-    needs: build
+    needs: [build, freebsd-test]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     permissions:
@@ -107,5 +210,7 @@ jobs:
             ssh-web-console-linux-arm64
             ssh-web-console-darwin-amd64
             ssh-web-console-windows-amd64.exe
+            ssh-web-console-freebsd-amd64
+            ssh-web-console-freebsd-arm64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
