@@ -1,13 +1,17 @@
 module github.com/genshen/ssh-web-console
 
-go 1.13
+go 1.26.0
 
 require (
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	github.com/oklog/ulid/v2 v2.0.2
-	github.com/pkg/sftp v1.12.0
-	github.com/rakyll/statik v0.1.7
-	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
-	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
-	nhooyr.io/websocket v1.8.6
+	github.com/coder/websocket v1.8.15
+	github.com/golang-jwt/jwt/v5 v5.3.1
+	github.com/oklog/ulid/v2 v2.1.2
+	github.com/pkg/sftp v1.13.12
+	golang.org/x/crypto v0.59.0
+	gopkg.in/yaml.v3 v3.0.1
+)
+
+require (
+	github.com/kr/fs v0.1.0 // indirect
+	golang.org/x/sys v0.50.0 // indirect
 )

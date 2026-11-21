@@ -10,7 +10,7 @@ you can connect to your linux machine by ssh in your browser.
 
 ```bash
 $ docker pull genshen/ssh-web-console:latest
-# docker build --build-arg GOMODULE=on -t genshen/ssh-web-console . # or build docker image on your own machine
+# docker build -t genshen/ssh-web-console . # or build docker image on your own machine
 $ docker run -v ${PWD}/conf:/home/web/conf -p 2222:2222 --rm genshen/ssh-web-console
 ```
 
@@ -28,7 +28,7 @@ Open your browser, visit `http://localhost:2222`. Enjoy it!
 
 ## Build & Run
 
-Make sure your Go version is 1.11 or later
+Make sure your Go version is 1.26 or later, and Node.js 16 for the frontend (react-scripts 4 does not build on Node >= 17)
 
 ### Clone
 
@@ -49,9 +49,7 @@ cd ../
 ### Build go
 
 ```bash
-go get github.com/rakyll/statik
-statik --src=web/build  # use statik tool to convert files in 'web/build' dir to go code, and compile into binary.
-export GO111MODULE=on # for go 1.11.x
+cp -r web/build build  # the frontend is embedded into the binary with go:embed (see main.go)
 go build
 ```
 

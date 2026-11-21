@@ -12,32 +12,34 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
       - name: Setup Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v5
         with:
-          go-version: 1.18
+          go-version-file: go.mod
 
       - name: Setup Node.js
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v4
         with:
+          # react-scripts 4 in the web submodule does not build on Node >= 17
           node-version: '16.x'
 
       - name: Build static
         run: cd web && yarn && yarn build && cd ../
 
       - name: Get Go dependencies
-        run: go mod download && go install github.com/rakyll/statik@v0.1.7
+        run: go mod download
 
-      - name: Static->GO generation
-        run: statik --src=web/build
+      - name: Embed static files
+        # main.go embeds ./build with go:embed
+        run: cp -r web/build build
 
       - name: Build
         run: make
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           name: build-artifact
           path: ssh-web-console-*
@@ -47,13 +49,13 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v4
         with:
           name: build-artifact
       - run: ls -R
 
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |

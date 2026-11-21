@@ -3,10 +3,10 @@ package controllers
 import (
 	"encoding/base64"
 	"encoding/json"
+	"github.com/coder/websocket"
 	"github.com/genshen/ssh-web-console/src/models"
 	"golang.org/x/crypto/ssh"
 	"io"
-	"nhooyr.io/websocket"
 )
 
 func DispatchMessage(sshSession *ssh.Session, messageType websocket.MessageType, wsData []byte, wc io.WriteCloser) error {
