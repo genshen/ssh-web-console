@@ -1,6 +1,8 @@
 package files
 
 import (
+	"github.com/coder/websocket"
+	"github.com/coder/websocket/wsjson"
 	"github.com/genshen/ssh-web-console/src/models"
 	"github.com/genshen/ssh-web-console/src/utils"
 	"github.com/oklog/ulid/v2"
@@ -8,8 +10,6 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
-	"nhooyr.io/websocket"
-	"nhooyr.io/websocket/wsjson"
 	"time"
 )
 

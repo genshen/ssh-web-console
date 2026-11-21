@@ -3,7 +3,7 @@ package controllers
 import (
 	"bytes"
 	"context"
-	"nhooyr.io/websocket"
+	"github.com/coder/websocket"
 	"sync"
 )
 

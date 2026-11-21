@@ -1,7 +1,10 @@
-# build method: just run `docker build --rm --build-arg -t genshen/ssh-web-console .`
+# build method: just run `docker build --rm -t genshen/ssh-web-console .`
 
 # build frontend code
-FROM node:14.15.4-alpine3.12 AS frontend-builder
+# Node 16: the frontend (web submodule) is react-scripts 4, whose PostCSS does not
+# load on Node >= 17. Only the static build output leaves this stage, so no Node
+# runtime ships in the image. Moving the frontend off react-scripts 4 is the real fix.
+FROM node:16-alpine AS frontend-builder
 
 COPY web web-console/
 
@@ -10,31 +13,29 @@ RUN cd web-console \
     && yarn build
 
 
-FROM golang:1.15.7-alpine3.13 AS builder
+FROM golang:1.27-alpine AS builder
 
-# set to 'on' if using go module
-ARG STATIC_DIR=build
+WORKDIR /src
 
+COPY go.mod go.sum ./
+RUN go mod download
 
-RUN apk add --no-cache git \
-    && go get -u github.com/rakyll/statik
+COPY ./ ./
+# the frontend is embedded into the binary from ./build (see main.go)
+COPY --from=frontend-builder web-console/build ./build/
 
-COPY ./  /go/src/github.com/genshen/ssh-web-console/
-COPY --from=frontend-builder web-console/build /go/src/github.com/genshen/ssh-web-console/${STATIC_DIR}/
-
-RUN cd ./src/github.com/genshen/ssh-web-console/ \
-    && statik -src=${STATIC_DIR} \
-    && go build \
-    && go install
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/ssh-web-console .
 
 ## copy binary
-FROM alpine:3.13
+FROM alpine:3.24
 
 ARG HOME="/home/web"
 
-RUN adduser -D web -h ${HOME}
+# pick up Alpine security fixes published since the base image was built
+RUN apk upgrade --no-cache \
+    && adduser -D web -h ${HOME}
 
-COPY --from=builder --chown=web /go/bin/ssh-web-console ${HOME}/ssh-web-console
+COPY --from=builder --chown=web /out/ssh-web-console ${HOME}/ssh-web-console
 
 WORKDIR ${HOME}
 USER web

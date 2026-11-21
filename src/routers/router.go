@@ -4,8 +4,7 @@ import (
 	"github.com/genshen/ssh-web-console/src/controllers"
 	"github.com/genshen/ssh-web-console/src/controllers/files"
 	"github.com/genshen/ssh-web-console/src/utils"
-	_ "github.com/genshen/ssh-web-console/statik"
-	"github.com/rakyll/statik/fs"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -16,10 +15,10 @@ const (
 	RunModeProd = "prod"
 )
 
-func Register() {
+func Register(staticFS fs.FS) {
 	// serve static files
 	// In dev mode, resource files (for example /static/*) and views(fro example /index.html) are served separately.
-	// In production mode, resource files and views are served by statikFS (for example /*).
+	// In production mode, resource files and views are served from the embedded frontend build (for example /*).
 	if utils.Config.Site.RunMode == RunModeDev {
 		if utils.Config.Dev.StaticPrefix == utils.Config.Dev.ViewsPrefix {
 			log.Fatal(`static prefix and views prefix can not be the same, check your config.`)
@@ -42,11 +41,9 @@ func Register() {
 			utils.ServeHTTP(w, r) // server soft static files.
 		})
 	} else {
-		statikFS, err := fs.New()
-		if err != nil {
-			log.Fatal(err)
-		}
-		http.Handle(utils.Config.Prod.StaticPrefix, http.StripPrefix(utils.Config.Prod.StaticPrefix, http.FileServer(statikFS)))
+		// justFilesFilesystem: no directory listings of the embedded files.
+		staticFiles := justFilesFilesystem{http.FS(staticFS)}
+		http.Handle(utils.Config.Prod.StaticPrefix, http.StripPrefix(utils.Config.Prod.StaticPrefix, http.FileServer(staticFiles)))
 	}
 
 	// set api prefix

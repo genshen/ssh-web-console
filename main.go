@@ -1,13 +1,20 @@
 package main
 
 import (
+	"embed"
 	"flag"
 	"fmt"
 	"github.com/genshen/ssh-web-console/src/routers"
 	"github.com/genshen/ssh-web-console/src/utils"
+	"io/fs"
 	"log"
 	"net/http"
 )
+
+// The frontend build (web/build), copied to ./build before `go build`.
+//
+//go:embed all:build
+var embeddedStatic embed.FS
 
 var confFilePath string
 var version bool
@@ -27,7 +34,11 @@ func main() {
 		log.Fatal("config error,", err)
 		return
 	}
-	routers.Register()
+	staticFS, err := fs.Sub(embeddedStatic, "build")
+	if err != nil {
+		log.Fatal(err)
+	}
+	routers.Register(staticFS)
 	log.Println("listening on port ", utils.Config.Site.ListenAddr)
 	// listen http
 	if err := http.ListenAndServe(utils.Config.Site.ListenAddr, nil); err != nil {

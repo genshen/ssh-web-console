@@ -3,13 +3,13 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"github.com/coder/websocket"
 	"github.com/genshen/ssh-web-console/src/models"
 	"github.com/genshen/ssh-web-console/src/utils"
 	"golang.org/x/crypto/ssh"
 	"io"
 	"log"
 	"net/http"
-	"nhooyr.io/websocket"
 	"time"
 )
 
